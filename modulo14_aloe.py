@@ -2335,6 +2335,7 @@ def optimizar_aloe(
     n_workers: int   = 0,
     max_iter:  int   = 200,
     r:         int   = 30,
+    n_grad:    int   = 2,
     theta:     float = 0.2,
     gamma:     float = 0.8,
     alpha_max: float = 10.0,
@@ -2362,9 +2363,11 @@ def optimizar_aloe(
     historia = []
     f_inc, x_inc = float("inf"), xk.copy()
 
-    # Evaluación inicial
+    # Evaluación inicial de x0
     fk, sk, _ = _strong_eval(xk, r, seed_base, seed_off, objetivo, n_workers)
     seed_off += r
+    fk_est, sk_est = fk, sk   # cache para evitar re-evaluación innecesaria
+    armijo_ok_prev = True      # primera iteración siempre re-evalúa xk
     f_inc, x_inc = fk, xk.copy()
     historia.append({"iter": 0, "costo": round(fk, 4),
                      "f_incumbente": round(fk, 4), "mejor_hasta_ahora": round(fk, 4),
@@ -2374,14 +2377,17 @@ def optimizar_aloe(
 
     for k in range(1, max_iter + 1):
         # ── Estimar gradiente por diferencias finitas centrales ───────────
+        # n_grad fijo en 2 réplicas por punto — el gradiente no necesita
+        # alta precisión; su función es dar dirección, no magnitud exacta.
+        # Usar r//4 con r=30 genera 168 sims solo para el gradiente (bug).
         gk = np.zeros(_ASTRO_D)
         for i in range(_ASTRO_D):
             xp = xk.copy(); xp[i] = float(np.clip(xk[i] + h, 0.0, 1.0))
             xm = xk.copy(); xm[i] = float(np.clip(xk[i] - h, 0.0, 1.0))
-            fp, _, _ = _strong_eval(xp, max(2, r // 4), seed_base, seed_off, objetivo, n_workers)
-            seed_off += max(2, r // 4)
-            fm, _, _ = _strong_eval(xm, max(2, r // 4), seed_base, seed_off, objetivo, n_workers)
-            seed_off += max(2, r // 4)
+            fp, _, _ = _strong_eval(xp, n_grad, seed_base, seed_off, objetivo, n_workers)
+            seed_off += n_grad
+            fm, _, _ = _strong_eval(xm, n_grad, seed_base, seed_off, objetivo, n_workers)
+            seed_off += n_grad
             denom = xp[i] - xm[i]
             gk[i] = (fp - fm) / denom if abs(denom) > 1e-12 else 0.0
 
@@ -2390,9 +2396,15 @@ def optimizar_aloe(
         # ── Proponer candidato ───────────────────────────────────────────
         xk_plus = np.clip(xk - alpha * gk, 0.0, 1.0)
 
-        # ── Evaluar F̄(xk) y F̄(xk+) con r réplicas ─────────────────────
-        fk_est, sk_est, _ = _strong_eval(xk, r, seed_base, seed_off, objetivo, n_workers)
-        seed_off += r
+        # ── Evaluar F̄(xk+) con r réplicas ──────────────────────────────
+        # F̄(xk) ya fue evaluado en la iteración anterior (o en x0).
+        # Solo re-evaluar xk si cambió (Armijo aceptado en iter anterior).
+        # Esto evita gastar r sims en xk cada iteración cuando hay rechazos.
+        if k == 1 or armijo_ok_prev:
+            fk_est, sk_est, _ = _strong_eval(xk, r, seed_base, seed_off,
+                                              objetivo, n_workers)
+            seed_off += r
+        # Si Armijo falló en iteración anterior, xk no cambió → reusar fk_est
         fkp, _, _ = _strong_eval(xk_plus, r, seed_base, seed_off, objetivo, n_workers)
         seed_off += r
 
@@ -2425,6 +2437,7 @@ def optimizar_aloe(
             "grad_norm": round(grad_norm, 6),
             "armijo_ok": bool(armijo_ok), "t_seg": t_seg,
         })
+        armijo_ok_prev = bool(armijo_ok)  # cache para próxima iteración
 
         if alpha < 1e-10 or grad_norm < 1e-6:
             log.info("Convergencia: α=%.2e  ‖g‖=%.2e", alpha, grad_norm)
@@ -3812,7 +3825,9 @@ if __name__ == "__main__":
     parser.add_argument("--no_plot",      action="store_true")
     # Parámetros ALOE (Jin et al. 2021)
     parser.add_argument("--r",         type=int,   default=30,
-                        help="Réplicas por evaluación (default: 30)")
+                        help="Réplicas por evaluación de Armijo (default: 30)")
+    parser.add_argument("--n_grad",    type=int,   default=2,
+                        help="Réplicas para diferencias finitas del gradiente (default: 2)")
     parser.add_argument("--theta",     type=float, default=0.2,
                         help="Constante condición Armijo (default: 0.2)")
     parser.add_argument("--gamma",     type=float, default=0.8,
@@ -3839,7 +3854,8 @@ if __name__ == "__main__":
     optimizar_aloe(
         x0=x0, seed=args.seed, seed_base=args.seed_base,
         objetivo="tts_full_days_mean", n_workers=args.n_workers,
-        max_iter=args.n_iter, r=args.r, theta=args.theta, gamma=args.gamma,
+        max_iter=args.n_iter, r=args.r, n_grad=args.n_grad,
+        theta=args.theta, gamma=args.gamma,
         alpha_max=args.alpha_max, alpha_0=args.alpha_0,
         epsilon_f=args.epsilon_f, h=args.h,
         guardar_json=args.guardar_json,
