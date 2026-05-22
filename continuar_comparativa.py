@@ -1,7 +1,7 @@
 """
 Continúa la comparativa desde donde se quedó:
-  - Carga M4 y M7 desde sus JSONs individuales ya existentes
-  - Corre M8, M9, M10, M11, M12, M13, M14
+  - Detecta automáticamente qué módulos ya tienen JSON guardado y los carga
+  - Corre solo los módulos pendientes
   - Combina todo y genera gráficas
 """
 import sys, os
@@ -41,25 +41,38 @@ def cargar_modulo_desde_json(path: str, modulo_id: str, algoritmo: str,
     }
 
 
+MODULO_META = {
+    "M4":  ("resultado_comparativa_m4.json",  "SMAC BlackBox (GP+EI)", "smac"),
+    "M7":  ("resultado_comparativa_m7.json",  "SMAC + SK (EI)",        "smac"),
+    "M8":  ("resultado_comparativa_m8.json",  "SK Adaptativo",         "smac"),
+    "M9":  ("resultado_comparativa_m9.json",  "SK-REVI",               "smac"),
+    "M10": ("resultado_comparativa_m10.json", "SK-KGCP",               "smac"),
+    "M11": ("resultado_comparativa_m11.json", "ASTRO-DF",              "iter"),
+    "M12": ("resultado_comparativa_m12.json", "STRONG",                "iter"),
+    "M13": ("resultado_comparativa_m13.json", "SPSA",                  "iter"),
+    "M14": ("resultado_comparativa_m14.json", "ALOE",                  "iter"),
+}
+
+
 if __name__ == "__main__":
     resultados = {}
 
-    # ── Cargar M4 y M7 ya existentes ────────────────────────────
-    print("Cargando M4 desde resultado_comparativa_m4.json...")
-    resultados["M4"] = cargar_modulo_desde_json(
-        "resultado_comparativa_m4.json", "M4", "SMAC BlackBox (GP+EI)", N_CORRIDAS)
-    print(f"  M4: costo={resultados['M4']['costo_incumbente']:.3f}  "
-          f"tiempo={resultados['M4']['tiempo_seg']:.0f}s")
+    # ── Cargar módulos ya existentes ─────────────────────────────
+    for m, (json_path, algoritmo, tipo) in MODULO_META.items():
+        if os.path.exists(json_path):
+            print(f"Cargando {m} desde {json_path}...")
+            resultados[m] = cargar_modulo_desde_json(json_path, m, algoritmo, N_CORRIDAS)
+            print(f"  {m}: costo={resultados[m]['costo_incumbente']:.3f}  "
+                  f"tiempo={resultados[m]['tiempo_seg']:.0f}s")
+        else:
+            print(f"{m}: JSON no encontrado, se ejecutará.")
 
-    print("Cargando M7 desde resultado_comparativa_m7.json...")
-    resultados["M7"] = cargar_modulo_desde_json(
-        "resultado_comparativa_m7.json", "M7", "SMAC + SK (EI)", N_CORRIDAS)
-    print(f"  M7: costo={resultados['M7']['costo_incumbente']:.3f}  "
-          f"tiempo={resultados['M7']['tiempo_seg']:.0f}s")
+    # ── Correr módulos pendientes ────────────────────────────────
+    pendientes_smac = [m for m in ["M8", "M9", "M10"] if m not in resultados]
+    pendientes_iter = [m for m in ["M11", "M12", "M13", "M14"] if m not in resultados]
 
-    # ── Correr módulos restantes ─────────────────────────────────
-    pendientes_smac = ["M8", "M9", "M10"]
-    pendientes_iter = ["M11", "M12", "M13", "M14"]
+    print(f"\nPendientes SMAC: {pendientes_smac}")
+    print(f"Pendientes iter: {pendientes_iter}")
 
     for m in pendientes_smac:
         print(f"\n{'='*60}\nEjecutando {m}\n{'='*60}")
