@@ -13,7 +13,7 @@ import json
 import modulo_comparativa_caja_negra as comp
 
 N_TRIALS  = 20
-MAX_ITER  = 30
+MAX_ITER  = 15
 N_CORRIDAS = 2
 N_REPS    = 5
 SEED      = 42
