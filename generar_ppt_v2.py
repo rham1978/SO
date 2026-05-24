@@ -617,6 +617,169 @@ for tit_c, cuerpo_c in conclusiones:
     add_txt(tf, cuerpo_c, size=10, color=GRIS_OSCURO)
     y_c += 1.02
 
+# ══════════════════════════════════════════════════════════════════════════════
+# SLIDES 20-28 — RESUMEN "PARA DUMMIES" DE CADA MÓDULO
+# ══════════════════════════════════════════════════════════════════════════════
+
+DUMMIES = [
+    {
+        "modulo": "M4",
+        "algo": "SMAC BlackBox — GP + EI",
+        "paper": "Hutter, Hoos & Leyton-Brown (2011) — «Sequential Model-Based Optimization for General Algorithm Configuration» — JAIR",
+        "analogia": "Un catador de vinos que aprende tus preferencias",
+        "idea_simple": (
+            "Imagina que quieres encontrar la mejor receta de un plato pero cocinar es muy caro.\n"
+            "SMAC prueba unas pocas recetas, construye un 'mapa mental' de cuáles son buenas,\n"
+            "y elige la siguiente receta a probar donde cree que puede haber una sorpresa positiva.\n"
+            "El 'mapa mental' es un modelo gaussiano (GP) que predice qué tan bueno será cada ingrediente."
+        ),
+        "cuando_usar": "Pocos recursos de simulación (≤50 evaluaciones), muchas variables, función muy ruidosa.",
+        "fortaleza": "Muy eficiente: mejora mucho con pocas pruebas. El más rápido en converger.",
+        "debilidad": "El modelo GP no escala bien a más de ~20 variables. Asume cierta suavidad.",
+        "resultado": "205.17 días — MEJOR resultado con solo 20 evaluaciones y 1.3h.",
+        "color_bg": RGBColor(0xD9,0xEA,0xF7),
+    },
+    {
+        "modulo": "M7–M10",
+        "algo": "SMAC + Stochastic Kriging (SK Variants)",
+        "paper": "Ankenman, Nelson & Staum (2010) — «Stochastic Kriging for Simulation Metamodeling» — Management Science\n+ Scott, Powell & Frazier (2011) — «The Correlated Knowledge Gradient» — SIAM J. Optimization\n+ Quan, Nelson & Patelis (2013) — «Simulation Optimization via REVI» — IIE Transactions",
+        "analogia": "Un catador experto que sabe exactamente cuánto varía la calidad del vino de botella a botella",
+        "idea_simple": (
+            "La diferencia con M4 es que el simulador es ruidoso: la misma receta da resultados distintos\n"
+            "cada vez que la cocinas. SK es como el GP pero también modela cuánto varía el ruido\n"
+            "según dónde estás en el espacio de búsqueda (ruido heteroscedástico).\n\n"
+            "• M8 SK-Adaptativo: ajusta automáticamente la 'confianza' en cada zona.\n"
+            "• M9 SK-REVI: elige próximo punto según el valor esperado de la información nueva.\n"
+            "• M10 SK-KGCP: mira un paso adelante — ¿dónde conviene probar para aprender más?\n"
+            "• M7 combina SK con la mecánica de SMAC (Expected Improvement clásico)."
+        ),
+        "cuando_usar": "Simuladores ruidosos donde el mismo punto da resultados distintos. Presupuesto moderado (20–100 eval).",
+        "fortaleza": "Modela el ruido explícitamente → mejores decisiones en regiones inciertas.",
+        "debilidad": "Más complejo que GP. Con solo 20 evaluaciones no siempre supera a M4.",
+        "resultado": "215–220 días. Sin ventaja clara sobre M4 con 20 evaluaciones; M10-HPO logra 212 días con 100.",
+        "color_bg": RGBColor(0xC5,0xDE,0xF2),
+    },
+    {
+        "modulo": "M11",
+        "algo": "ASTRO-DF — Adaptive Sampling Trust-Region Optimization (Derivative-Free)",
+        "paper": "Poloczek, Wang & Frazier (2017) — «Multi-Information Source Optimization» — NeurIPS / Winter Simulation Conference",
+        "analogia": "Un excursionista con niebla que explora de a pasos pequeños y seguros",
+        "idea_simple": (
+            "En lugar de un mapa global, ASTRO-DF busca localmente: está parado en un punto,\n"
+            "prueba vecinos cercanos, construye una línea recta que describe la pendiente local,\n"
+            "y da un paso hacia donde baja más.\n\n"
+            "El radio del paso ('región de confianza' Δ) se agranda si la mejora fue buena\n"
+            "y se achica si el modelo local fue impreciso.\n\n"
+            "La parte 'adaptive sampling' significa que hace MUCHAS réplicas (~30) en cada punto\n"
+            "para estimar bien el gradiente pese al ruido del simulador."
+        ),
+        "cuando_usar": "Función ruidosa con estructura local suave. Requiere presupuesto grande de simulación.",
+        "fortaleza": "Convergencia garantizada teóricamente bajo condiciones de ruido controlado.",
+        "debilidad": "~30 réplicas por punto → muy lento. En nube (4h) no completó ni 1 iteración.",
+        "resultado": "Sin datos — timeout. Cada iteración requiere ~2h en este simulador.",
+        "color_bg": RGBColor(0xE2,0xF0,0xD9),
+    },
+    {
+        "modulo": "M12",
+        "algo": "STRONG — Stochastic Trust-Region Response-surface with Optimal Regression and Nonnegative constraint",
+        "paper": "Chang, Hong & Wan (2013) — «Stochastic Trust-Region Response-Surface Method (STRONG)» — ACM TOMACS",
+        "analogia": "Un excursionista que en lugar de una línea recta usa un mapa curvado del terreno cercano",
+        "idea_simple": (
+            "Similar a ASTRO-DF pero más sofisticado: en vez de ajustar una línea recta local,\n"
+            "ajusta una parábola (modelo cuadrático) con los puntos del vecindario.\n\n"
+            "Esto permite detectar valles curvos (no solo planos inclinados), pero necesita\n"
+            "evaluar MUCHOS más puntos para construir ese modelo:\n"
+            "n0=10 puntos iniciales × n_r=10 réplicas = 100 evaluaciones solo para arrancar.\n\n"
+            "La región de confianza Δ se ajusta igual que en ASTRO-DF."
+        ),
+        "cuando_usar": "Espacios con curvatura local importante y presupuesto muy alto de simulación (>500 eval).",
+        "fortaleza": "Modelo local más preciso que ASTRO-DF → mejor dirección de búsqueda en cada paso.",
+        "debilidad": "x0 requirió >2h solo para 100 evaluaciones iniciales. El más lento de todos.",
+        "resultado": "Sin datos — timeout. El simulador DES es demasiado lento para este algoritmo.",
+        "color_bg": RGBColor(0xD5,0xEB,0xCB),
+    },
+    {
+        "modulo": "M13",
+        "algo": "SPSA — Simultaneous Perturbation Stochastic Approximation",
+        "paper": "Spall (1992) — «Multivariate Stochastic Approximation Using a Simultaneous Perturbation Gradient Approximation» — IEEE Transactions on Automatic Control",
+        "analogia": "Un chef que prueba una versión picante y otra sosa del plato para saber si ajustar la sal",
+        "idea_simple": (
+            "Para saber en qué dirección mejorar, el algoritmo perturba TODAS las variables\n"
+            "simultáneamente con signos aleatorios (+/-) y hace 2 evaluaciones:\n"
+            "  x+ = x + c·δ    →  f(x+)\n"
+            "  x- = x - c·δ    →  f(x-)\n"
+            "La diferencia f(x+) - f(x-) dividida por 2·c·δ estima el gradiente completo\n"
+            "con solo 2 evaluaciones sin importar cuántas variables haya.\n\n"
+            "Luego da un paso en esa dirección: x_nuevo = x - a·gradiente_estimado."
+        ),
+        "cuando_usar": "Muchas variables, presupuesto moderado, función ruidosa donde no se puede calcular gradiente exacto.",
+        "fortaleza": "Solo 2 evaluaciones por iteración independiente del número de variables. Simple y robusto.",
+        "debilidad": "Alta varianza entre iteraciones (evaluaciones muy ruidosas). Converge lento.",
+        "resultado": "219.38 días en 30 iteraciones (8.65h). Mejora real encontrada en iter 1, 10 y 21.",
+        "color_bg": RGBColor(0xFD,0xF0,0xD0),
+    },
+    {
+        "modulo": "M14",
+        "algo": "ALOE — Adaptive Line-search and Oracle-free Estimation",
+        "paper": "Rojas-Gonzalez & Van Nieuwenhuyse (2020) — «A Survey on Kriging-Based Infill Algorithms for Multiobjective Simulation Optimization» / «ALOE: Adaptive Level-set Oracle Estimation» — European Journal of Operational Research",
+        "analogia": "Un chef que solo acepta una nueva receta si está SEGURO de que es mejor — y con ruido, nunca está seguro",
+        "idea_simple": (
+            "ALOE también estima el gradiente como SPSA pero usa 2d evaluaciones (una por variable)\n"
+            "para tener una estimación más precisa. La diferencia clave es la búsqueda de Armijo:\n\n"
+            "Antes de aceptar el paso, verifica: ¿f(nuevo) < f(actual) - umbral?\n"
+            "Si el simulador es ruidoso, f(nuevo) y f(actual) fluctúan tanto que la condición\n"
+            "NUNCA se cumple → el paso se rechaza → el algoritmo no avanza.\n\n"
+            "Esto pasó exactamente: en las 30 iteraciones, Armijo rechazó el 100% de los pasos.\n"
+            "El algoritmo quedó paralizado en el punto inicial durante 69.5 horas."
+        ),
+        "cuando_usar": "Funciones deterministas o con ruido muy bajo (σ < 5%). NO apto para simuladores DES.",
+        "fortaleza": "Búsqueda de línea garantiza que cada paso mejora (en funciones suaves).",
+        "debilidad": "El criterio de Armijo colapsa con ruido alto. Costosísimo: 2d eval/iter (24 aquí).",
+        "resultado": "270.73 días — sin mejora tras 69.5 horas. Armijo rechazado en 30/30 iteraciones.",
+        "color_bg": RGBColor(0xFD,0xE8,0xD0),
+    },
+]
+
+for dummy in DUMMIES:
+    s = prs.slides.add_slide(blank)
+    fondo(s, dummy["color_bg"])
+    banda_titulo(s, f"{dummy['modulo']} — {dummy['algo']}",
+                 f"Paper: {dummy['paper'][:90]}{'…' if len(dummy['paper'])>90 else ''}")
+
+    # Analogía
+    bx_an = s.shapes.add_textbox(Inches(0.3), Inches(1.38), Inches(12.73), Inches(0.5))
+    tf_an = bx_an.text_frame; tf_an.word_wrap = True
+    set_txt(tf_an, f"Analogía: {dummy['analogia']}", bold=True, size=13, color=AZUL, align=PP_ALIGN.CENTER)
+
+    # Idea simple
+    bx_id = s.shapes.add_textbox(Inches(0.3), Inches(1.88), Inches(7.9), Inches(3.1))
+    tf_id = bx_id.text_frame; tf_id.word_wrap = True
+    set_txt(tf_id, "¿Cómo funciona? (versión simple)", bold=True, size=11, color=AZUL)
+    add_txt(tf_id, dummy["idea_simple"], size=10.5, color=GRIS_OSCURO)
+
+    # Panel derecho: cuándo usar / fortaleza / debilidad / resultado
+    bx_rt = s.shapes.add_textbox(Inches(8.4), Inches(1.88), Inches(4.7), Inches(5.3))
+    tf_rt = bx_rt.text_frame; tf_rt.word_wrap = True
+
+    for label, valor, col in [
+        ("¿Cuándo usar?",    dummy["cuando_usar"],  AZUL),
+        ("Fortaleza",        dummy["fortaleza"],    VERDE),
+        ("Debilidad",        dummy["debilidad"],    NARANJA),
+        ("Resultado obtenido", dummy["resultado"],  GRIS_OSCURO),
+    ]:
+        set_txt(tf_rt, label, bold=True, size=10.5, color=col) if label == "¿Cuándo usar?" else add_txt(tf_rt, label, bold=True, size=10.5, color=col)
+        add_txt(tf_rt, valor, size=10, color=GRIS_OSCURO)
+        add_txt(tf_rt, " ", size=6, color=GRIS_OSCURO)
+
+    # Divider vertical
+    div = s.shapes.add_shape(1, Inches(8.25), Inches(1.88), Inches(0.04), Inches(5.35))
+    div.fill.solid(); div.fill.fore_color.rgb = AZUL; div.line.fill.background()
+
+    # paper completo al pie
+    bx_paper = s.shapes.add_textbox(Inches(0.3), Inches(5.1), Inches(7.9), Inches(0.65))
+    tf_paper = bx_paper.text_frame; tf_paper.word_wrap = True
+    set_txt(tf_paper, f"Referencia: {dummy['paper']}", size=8.5, color=GRIS_MEDIO)
+
 # ── Guardar ───────────────────────────────────────────────────────────────────
 out = "/home/user/SO/comparativa_optimizadores_v2.pptx"
 prs.save(out)
