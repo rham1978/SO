@@ -1,6 +1,5 @@
 """
-PPT Raúl v2 — datos de Raúl: M4, M7, M8, M10-HPO, M13, M14
-Misma estructura y formato que la v1, añade M7 y M8.
+PPT Raúl v3 — datos de Raúl: M4, M7, M8, M9, M10-HPO, M13, M14
 """
 import os, json
 from pptx import Presentation
@@ -77,6 +76,7 @@ def cargar_abs(path):
 d_m4    = cargar("resultado_comparativa_m4.json")
 d_m7    = cargar_abs("/tmp/resultado_comparativa_m7_raul.json")
 d_m8    = cargar_abs("/tmp/resultado_comparativa_m8_raul.json")
+d_m9    = cargar_abs("/tmp/resultado_comparativa_m9_raul.json")
 d_m13   = cargar("resultado_comparativa_m13.json")
 d_m14   = cargar("resultado_comparativa_m14.json")
 d_m10h  = cargar("resultado_m10_hpo_kgcp.json")
@@ -85,7 +85,8 @@ ALGO_META = {
     "M4":      {"algo": "SMAC BlackBox (GP+EI)",  "familia": "Bayesiana — GP",  "color": RGBColor(0xD9,0xEA,0xF7)},
     "M7":      {"algo": "SMAC + SK (EI)",          "familia": "Bayesiana — SK",  "color": RGBColor(0xC5,0xDE,0xF2)},
     "M8":      {"algo": "SK Adaptativo",           "familia": "Bayesiana — SK",  "color": RGBColor(0xB8,0xD8,0xED)},
-    "M10-HPO": {"algo": "SK-KGCP (100 eval)",      "familia": "Bayesiana — SK",  "color": RGBColor(0xAB,0xD2,0xE8)},
+    "M9":      {"algo": "SK-REVI",                 "familia": "Bayesiana — SK",  "color": RGBColor(0xA0,0xCC,0xE3)},
+    "M10-HPO": {"algo": "SK-KGCP (100 eval)",      "familia": "Bayesiana — SK",  "color": RGBColor(0x8E,0xC4,0xDD)},
     "M13":     {"algo": "SPSA",                    "familia": "Grad. Estocástico","color": RGBColor(0xE2,0xF0,0xD9)},
     "M14":     {"algo": "ALOE",                    "familia": "Grad. Estocástico","color": RGBColor(0xFF,0xEB,0xCC)},
 }
@@ -94,6 +95,7 @@ DATOS = {
     "M4":      d_m4,
     "M7":      d_m7,
     "M8":      d_m8,
+    "M9":      d_m9,
     "M10-HPO": d_m10h,
     "M13":     d_m13,
     "M14":     d_m14,
@@ -103,6 +105,7 @@ PARAMS_ALGO = {
     "M4":      "n_trials=20, seed=42\nSurrogado: Gaussian Process (Matérn 5/2)\nAdquisición: Expected Improvement (EI)",
     "M7":      "n_trials=20, seed=42\nSurrogado: Stochastic Kriging heteroscedástico\nAdquisición: EI con corrección de ruido",
     "M8":      "n_trials=20, seed=42\nSurrogado: SK con δ adaptativo por región\nAdquisición: EI adaptativo — n_eval=76 (réplicas adapt.)",
+    "M9":      "n_trials=20, seed=42, β=1.0\nSurrogado: SK + Replicated EVI (REVI)\nAdquisición: Expected Value of Information replicado — n_eval=41",
     "M10-HPO": "n_trials=100, seed=42\nSurrogado: SK + Knowledge Gradient CP\nAdquisición: KG look-ahead (HPO optimizados)",
     "M13":     "max_iter=30, seed=42\nGradiente: estimación simultánea (SPSA, 2 eval/iter)\nPaso: α_k=a/(A+k)^0.602, ck=c/k^0.101",
     "M14":     "max_iter=30, seed=42\nGradiente: diferencias finitas (2d eval/iter)\nBúsqueda de línea: Armijo con reducción exponencial",
@@ -123,7 +126,7 @@ INCUMBENTE_LABELS = [
     ("pct_no_contactabilidad",     "pct_no_contactabilidad"),
 ]
 
-MODULOS = ["M4", "M7", "M8", "M10-HPO", "M13", "M14"]
+MODULOS = ["M4", "M7", "M8", "M9", "M10-HPO", "M13", "M14"]
 
 prs   = nueva_prs()
 blank = prs.slide_layouts[6]
@@ -139,7 +142,7 @@ set_txt(bx.text_frame,
         bold=True, size=36, color=BLANCO, align=PP_ALIGN.CENTER)
 bx2 = s.shapes.add_textbox(Inches(1), Inches(4.1), Inches(11.3), Inches(0.8))
 set_txt(bx2.text_frame,
-        "Simulador DES Clínica de Ginecología — Módulos M4, M7, M8, M10-HPO, M13, M14",
+        "Simulador DES Clínica de Ginecología — Módulos M4, M7, M8, M9, M10-HPO, M13, M14",
         size=20, color=RGBColor(0xBD,0xD7,0xEE), align=PP_ALIGN.CENTER)
 bx3 = s.shapes.add_textbox(Inches(1), Inches(5.2), Inches(11.3), Inches(0.7))
 set_txt(bx3.text_frame,
@@ -163,7 +166,7 @@ bloques = [
      "simulador_clinica_baseline.py — modelo de eventos discretos (DES) estocástico con simpy.\nCada evaluación ejecuta 2 réplicas con semillas aleatorias → función ruidosa σ≈20–40 días."),
     ("Resultados destacados (PC Raúl)",
      "Línea base: ~270 días  →  M10-HPO (SK-KGCP, 100 eval): 212.03 días  (−21.7%)\n"
-     "M8 (SK Adapt., 76 eval): 218.05 d  |  M7 (SK EI, 40 eval): 219.96 d  |  M13 (SPSA): 219.38 d\n"
+     "M8 (SK Adapt., 76 eval): 218.05 d  |  M9 (SK-REVI, 41 eval): 219.26 d  |  M13 (SPSA): 219.38 d  |  M7 (SK EI, 40 eval): 219.96 d\n"
      "M4 (GP+EI, 20 eval): 230.80 d  |  M14 (ALOE): 270.73 d — sin convergencia"),
 ]
 y = 1.44
@@ -188,14 +191,15 @@ filas = [
     ["M4",       "SMAC BlackBox (GP+EI)",   "Bayesiana — GP",    "Hutter et al. 2011 (JAIR)"],
     ["M7",       "SMAC + SK (EI)",           "Bayesiana — SK",    "Ankenman et al. 2010 + Hutter 2011"],
     ["M8",       "SK Adaptativo",            "Bayesiana — SK",    "Ankenman, Nelson & Staum 2010 (Management Science)"],
+    ["M9",       "SK-REVI",                  "Bayesiana — SK",    "Quan, Nelson & Patelis 2013 (IIE Transactions)"],
     ["M10-HPO",  "SK-KGCP (100 eval)",       "Bayesiana — SK",    "Scott, Powell & Frazier 2011 (SIAM J. Optim.)"],
     ["M13",      "SPSA",                     "Grad. Estocástico", "Spall 1992 (IEEE Trans. Autom. Control)"],
     ["M14",      "ALOE",                     "Grad. Estocástico", "Lim et al. 2012 (European J. Oper. Research)"],
 ]
 BG = [RGBColor(0xD9,0xEA,0xF7), RGBColor(0xC5,0xDE,0xF2), RGBColor(0xB8,0xD8,0xED),
-      RGBColor(0xAB,0xD2,0xE8), RGBColor(0xE2,0xF0,0xD9), RGBColor(0xFF,0xEB,0xCC)]
+      RGBColor(0xA0,0xCC,0xE3), RGBColor(0x8E,0xC4,0xDD), RGBColor(0xE2,0xF0,0xD9), RGBColor(0xFF,0xEB,0xCC)]
 
-t = s.shapes.add_table(7, 4, Inches(0.5), Inches(1.45), Inches(12.33), Inches(4.5)).table
+t = s.shapes.add_table(8, 4, Inches(0.5), Inches(1.45), Inches(12.33), Inches(4.9)).table
 for i, w in enumerate([0.9, 2.4, 1.6, 6.43]):
     t.columns[i].width = Inches(w)
 for c, h in enumerate(cols):
@@ -231,31 +235,32 @@ papers_4 = {
     "M4":      "Hutter et al. 2011 (JAIR)",
     "M7":      "Ankenman et al. 2010 + Hutter 2011",
     "M8":      "Ankenman, Nelson & Staum 2010 (Mgmt. Sci.)",
+    "M9":      "Quan, Nelson & Patelis 2013 (IIE Trans.)",
     "M10-HPO": "Scott, Powell & Frazier 2011 (SIAM)",
     "M13":     "Spall 1992 (IEEE Trans. Autom. Control)",
     "M14":     "Lim et al. 2012 (European J. Oper. Research)",
 }
-# 6 módulos en 2 columnas × 3 filas
-positions_6 = [
-    (0.2, 1.45), (4.57, 1.45), (8.94, 1.45),
-    (0.2, 3.98), (4.57, 3.98), (8.94, 3.98),
+# 7 módulos: 4 en fila superior, 3 en fila inferior
+positions_7 = [
+    (0.18, 1.45), (3.48, 1.45), (6.78, 1.45), (10.08, 1.45),
+    (0.18, 4.05), (3.48, 4.05), (6.78, 4.05),
 ]
 for idx, m in enumerate(MODULOS):
-    cx, cy = positions_6[idx]
+    cx, cy = positions_7[idx]
     meta = ALGO_META[m]
     d = DATOS[m]
-    rect = s.shapes.add_shape(1, Inches(cx), Inches(cy), Inches(4.16), Inches(2.38))
+    rect = s.shapes.add_shape(1, Inches(cx), Inches(cy), Inches(3.1), Inches(2.38))
     rect.fill.solid(); rect.fill.fore_color.rgb = meta["color"]
     rect.line.color.rgb = AZUL
-    bx = s.shapes.add_textbox(Inches(cx+0.1), Inches(cy+0.08), Inches(3.94), Inches(2.2))
+    bx = s.shapes.add_textbox(Inches(cx+0.1), Inches(cy+0.08), Inches(2.88), Inches(2.2))
     tf = bx.text_frame; tf.word_wrap = True
     costo = d['costo_incumbente']
     tiempo = d['tiempo_seg']/3600
-    set_txt(tf, f"{m} — {meta['algo']}", bold=True, size=10.5, color=AZUL)
-    add_txt(tf, PARAMS_ALGO[m], size=9.5, color=GRIS_OSCURO)
+    set_txt(tf, f"{m} — {meta['algo']}", bold=True, size=9.5, color=AZUL)
+    add_txt(tf, PARAMS_ALGO[m], size=8.5, color=GRIS_OSCURO)
     fg_c = VERDE if costo < 215 else (ROJO if costo > 265 else GRIS_OSCURO)
-    add_txt(tf, f"\n→ {costo:.2f} días · {tiempo:.2f} h", bold=True, size=10, color=fg_c)
-    add_txt(tf, f"Ref: {papers_4[m]}", size=8, color=GRIS_MEDIO)
+    add_txt(tf, f"\n→ {costo:.2f} d · {tiempo:.2f} h", bold=True, size=9.5, color=fg_c)
+    add_txt(tf, f"Ref: {papers_4[m]}", size=7.5, color=GRIS_MEDIO)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SLIDE 5 — TABLA RESULTADOS
@@ -273,6 +278,7 @@ converge_info = {
     "M4":      "Sí (GP)",
     "M7":      "Sí (SK)",
     "M8":      "Sí (SK adapt.)",
+    "M9":      "Sí (SK-REVI)",
     "M10-HPO": "Sí (SK-KG)",
     "M13":     "Sí (parcial)",
     "M14":     "No (Armijo)",
@@ -281,13 +287,14 @@ eval_info = {
     "M4":      20,
     "M7":      40,
     "M8":      76,
+    "M9":      41,
     "M10-HPO": 100,
     "M13":     "60 (30×2)",
     "M14":     "360 (30×2d)",
 }
 
-t_r = s.shapes.add_table(len(MODULOS)+1, 9, Inches(0.2), Inches(1.45), Inches(12.93), Inches(4.7)).table
-for i, w in enumerate([0.45, 0.85, 2.0, 1.35, 1.0, 1.05, 0.8, 0.95, 1.4]):
+t_r = s.shapes.add_table(len(MODULOS)+1, 9, Inches(0.2), Inches(1.45), Inches(12.93), Inches(5.1)).table
+for i, w in enumerate([0.42, 0.85, 1.9, 1.3, 0.95, 1.05, 0.75, 0.88, 1.4]):
     t_r.columns[i].width = Inches(w)
 for c, h in enumerate(cols_r):
     celda(t_r, 0, c, h, bold=True, size=10, bg=AZUL, fg=BLANCO)
@@ -307,10 +314,10 @@ for r, m in enumerate(orden, 1):
         fg  = VERDE if (c == 4 and r == 1) else (ROJO if (c == 4 and costo >= 265) else GRIS_OSCURO)
         celda(t_r, r, c, val, size=10, bg=bg, align=aln, fg=fg)
 
-nota_r = s.shapes.add_textbox(Inches(0.2), Inches(6.25), Inches(12.93), Inches(0.55))
+nota_r = s.shapes.add_textbox(Inches(0.2), Inches(6.65), Inches(12.93), Inches(0.55))
 tf_nota = nota_r.text_frame; tf_nota.word_wrap = True
 set_txt(tf_nota,
-        "★ Mejor: M10-HPO SK-KGCP (100 eval) → 212.03 días (−21.7%).  M8 SK Adapt. mejor entre 20-eval Bayesianos: 218.05 días.",
+        "★ Mejor: M10-HPO SK-KGCP (100 eval) → 212.03 días (−21.7%).  M8 SK Adapt. mejor entre Bayesianos ~20-eval: 218.05 días.",
         bold=True, size=10, color=VERDE)
 add_txt(tf_nota,
         "M14 ALOE sin mejora: Armijo rechazado 30/30 iteraciones. Ruido simulador (σ≈20-40d) supera señal del gradiente.",
@@ -327,26 +334,26 @@ banda_titulo(s, "Parámetros Óptimos (Incumbentes) por Módulo",
 nrows_i = len(INCUMBENTE_LABELS) + 1
 ncols_i = len(MODULOS) + 1
 t_i = s.shapes.add_table(nrows_i, ncols_i, Inches(0.1), Inches(1.42), Inches(13.13), Inches(5.8)).table
-t_i.columns[0].width = Inches(2.15)
-col_w = (13.13 - 2.15) / len(MODULOS)
+t_i.columns[0].width = Inches(2.0)
+col_w = (13.13 - 2.0) / len(MODULOS)
 for i in range(len(MODULOS)):
     t_i.columns[i+1].width = Inches(col_w)
 
-celda(t_i, 0, 0, "Parámetro", bold=True, size=10, bg=AZUL, fg=BLANCO, align=PP_ALIGN.LEFT)
+celda(t_i, 0, 0, "Parámetro", bold=True, size=9.5, bg=AZUL, fg=BLANCO, align=PP_ALIGN.LEFT)
 for c, m in enumerate(MODULOS, 1):
     costo = DATOS[m]['costo_incumbente']
-    celda(t_i, 0, c, f"{m}\n({costo:.2f}d)", bold=True, size=9, bg=AZUL, fg=BLANCO)
+    celda(t_i, 0, c, f"{m}\n({costo:.2f}d)", bold=True, size=8.5, bg=AZUL, fg=BLANCO)
 
 for r, (key, label) in enumerate(INCUMBENTE_LABELS, 1):
     bg_row = AZUL_CLARO if r % 2 == 0 else BLANCO
-    celda(t_i, r, 0, label, size=9.5, bg=bg_row, align=PP_ALIGN.LEFT)
+    celda(t_i, r, 0, label, size=9, bg=bg_row, align=PP_ALIGN.LEFT)
     vals = [DATOS[m]['incumbente'].get(key, '—') for m in MODULOS]
     float_vals = [v for v in vals if isinstance(v, float)]
     for c, (m, v) in enumerate(zip(MODULOS, vals), 1):
         val_str = f"{v:.4f}" if isinstance(v, float) else str(v)
         is_min  = isinstance(v, float) and float_vals and v == min(float_vals)
         fg = VERDE if (("pct" in key) and is_min and m != "M14") else GRIS_OSCURO
-        celda(t_i, r, c, val_str, size=9.5, bg=bg_row, fg=fg)
+        celda(t_i, r, c, val_str, size=9, bg=bg_row, fg=fg)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SLIDE 7 — ANÁLISIS DE INCUMBENTES
@@ -357,17 +364,17 @@ banda_titulo(s, "Análisis de Incumbentes — Patrones y Diferencias",
              "¿Qué variables mueven los algoritmos? ¿Por qué difieren?")
 
 patrones = [
-    ("M7 y M8: incumbentes casi idénticos (pct_bloqueo_1ra ≈ 14.9%, cupos_lab=70)",
-     "Ambos SK variants convergen a la misma configuración. M8 (adaptativo) necesita más evaluaciones (76 vs 40)\n"
-     "pero logra menor costo (218.05 vs 219.96 días). La replicación adaptativa refina mejor la región óptima."),
-    ("horas_especialista_1ra: M4=19h, M7/M8=16h, M10-HPO=22h, M13=30h (máx), M14=19h (sin cambio)",
-     "Los SK con 20 eval se quedan en 16h (mínimo evaluado). M10-HPO con 100 eval explora más. M13 SPSA satura al máximo."),
-    ("pct_bloqueo_1ra: M7/M8≈14.9%, M4=8.9%, M10-HPO=15.1%, M13=5% (mín), M14=27.5% (inicial)",
-     "Los SK (M7/M8) convergen a ~15%, no al mínimo absoluto. M13 SPSA y M4 encuentran valores menores con búsqueda más agresiva."),
-    ("cupos_laboratorio_ugd: M7/M8=70, M4=67, M10-HPO=81, M13=100 (máx)",
-     "M7 y M8 comparten valor idéntico (70). M10-HPO con más presupuesto llega a 81. SPSA satura al máximo."),
-    ("Diferencia M4 (230.8d) vs M7/M8 (218-220d) vs M10-HPO (212d): el surrogado importa con presupuesto suficiente",
-     "M4 GP con 20 eval es superado por SK con 40-76 eval. Con 100 eval, SK-KGCP es el mejor (212d).\n"
+    ("M7, M8 y M9: incumbentes casi idénticos (pct_bloqueo_1ra ≈ 14.9–15.0%, cupos_lab=70)",
+     "Los tres SK variants convergen a la misma configuración con distinto nº de eval (40/76/41).\n"
+     "M8 Adapt. (218.05d) > M9 REVI (219.26d) > M7 EI (219.96d). La replicación adaptativa/REVI refina mejor."),
+    ("horas_especialista_1ra: M4=19h, M7/M8/M9=16h, M10-HPO=22h, M13=30h (máx), M14=19h (sin cambio)",
+     "Los SK con ~40 eval se quedan en 16h. M10-HPO con 100 eval explora más. M13 SPSA satura al máximo."),
+    ("pct_bloqueo_1ra: M7/M8/M9≈14.9-15.0%, M4=8.9%, M10-HPO=15.1%, M13=5% (mín), M14=27.5%",
+     "Los tres SK convergen a ~15%. M13 SPSA y M4 encuentran valores menores con búsqueda más agresiva."),
+    ("cupos_laboratorio_ugd: M7/M8/M9=70, M4=67, M10-HPO=81, M13=100 (máx)",
+     "M7, M8 y M9 comparten valor idéntico (70) — zona óptima SK. M10-HPO llega a 81. SPSA satura."),
+    ("Diferencia M4 (230.8d) vs M7/M8/M9 (218-220d) vs M10-HPO (212d): surrogado importa con más presupuesto",
+     "M4 GP (20 eval) es superado por todos los SK (40-76 eval). Con 100 eval, SK-KGCP es el mejor (212d).\n"
      "Conclusión: SK > GP cuando el presupuesto supera ~40 evaluaciones."),
 ]
 
@@ -522,6 +529,27 @@ DUMMIES = [
         "color_bg":  RGBColor(0xB8,0xD8,0xED),
     },
     {
+        "modulo":    "M9",
+        "algo":      "SK-REVI — Replicated Expected Value of Information",
+        "paper":     "Quan, Nelson & Patelis (2013) — Simulation Optimization via Ranking and Selection in Large Samples — IIE Transactions",
+        "analogia":  "El sumiller que calcula cuánto aprendería pidiendo una botella adicional de cada vino",
+        "idea_simple": (
+            "REVI cambia la pregunta de adquisición: en vez de '¿dónde está el máximo esperado?'\n"
+            "pregunta '¿dónde aprendería más haciendo UNA evaluación adicional?'\n\n"
+            "Elige el punto donde el valor esperado de la información nueva\n"
+            "(Value of Information, VOI) es máximo. Si ya sé que una zona es mala,\n"
+            "no aprendo nada evaluando ahí — REVI evita ese desperdicio.\n\n"
+            "El 'Replicated' significa que puede sugerir repetir un punto ya evaluado\n"
+            "si reducir su varianza es más valioso que explorar uno nuevo.\n\n"
+            "Resultado en PC Raúl: 41 evaluaciones totales → 219.26 días."
+        ),
+        "cuando_usar": "Ruido alto y hay que decidir si replicar o explorar. Presupuesto 30–100 eval.",
+        "fortaleza": "Asignación de presupuesto más inteligente: solo replica donde vale la pena.",
+        "debilidad": "Más costoso computacionalmente que EI básico. Necesita >30 eval para superar a M7.",
+        "resultado": "219.26 días con 41 eval y 1.44 h. Mejor que M7 EI (219.96d) con similar presupuesto.",
+        "color_bg":  RGBColor(0xA0,0xCC,0xE3),
+    },
+    {
         "modulo":    "M10-HPO",
         "algo":      "SK-KGCP — Knowledge Gradient with Correlated Prior (100 eval, HPO)",
         "paper":     "Scott, Powell & Frazier (2011) — The Correlated Knowledge Gradient for Simulation Optimization — SIAM Journal on Optimization",
@@ -620,6 +648,6 @@ for dummy in DUMMIES:
     set_txt(bx_paper.text_frame, f"Referencia completa: {dummy['paper']}", size=8.5, color=GRIS_MEDIO)
 
 # ── Guardar ───────────────────────────────────────────────────────────────────
-out = "/home/user/SO/comparativa_optimizadores_raul_v2.pptx"
+out = "/home/user/SO/comparativa_optimizadores_raul_v3.pptx"
 prs.save(out)
 print(f"PPT guardado: {out}  ({len(prs.slides)} slides)")
