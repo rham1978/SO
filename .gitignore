@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+
+# SMAC output directories (runtime artifacts)
+smac_comp_*/
+
+# Result files generated at runtime (committed manually when ready)
+resultado_comparativa_*.json
