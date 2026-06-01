@@ -1,0 +1,16 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# SMAC output directories
+smac_comp_*/
+smac_output*/
+
+# Generated outputs (JSONs, PNGs, PPTXs) — keep in working dir but don't track
+*.json
+*.png
+*.pptx
+*.xlsx
+*.zip
+*.7z
