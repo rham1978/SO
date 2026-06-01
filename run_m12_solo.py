@@ -57,6 +57,27 @@ try:
     print(f"\n✓ M12 completado: costo={resultado['costo_incumbente']:.3f}  tiempo={resultado['tiempo_seg']:.0f}s", flush=True)
     print(f"✓ Guardado en: {out}", flush=True)
 
+    # Generar gráfica
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        hist = resultado["historia_costos"]
+        if hist:
+            iters = [h.get("iter", i) for i, h in enumerate(hist)]
+            costos = [h.get("f_incumbente", h.get("costo", 0)) for h in hist]
+            fig, ax = plt.subplots(figsize=(8, 4))
+            ax.plot(iters, costos, "o-", color="#1f497d")
+            ax.set_xlabel("Iteración"); ax.set_ylabel("Costo incumbente (días)")
+            ax.set_title(f"M12 STRONG — convergencia (mejor={min(costos):.2f} días)")
+            ax.grid(True, alpha=0.3)
+            png_out = os.path.join(_DIR, "resultado_comparativa_m12.png")
+            fig.savefig(png_out, dpi=120, bbox_inches="tight")
+            plt.close(fig)
+            print(f"✓ Gráfica: {png_out}", flush=True)
+    except Exception as eg:
+        print(f"⚠ Gráfica no generada: {eg}", flush=True)
+
 except Exception as e:
     import traceback
     print(f"\n✗ Error en M12: {e}", flush=True)
