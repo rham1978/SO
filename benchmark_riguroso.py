@@ -295,11 +295,21 @@ def _re_evaluar_incumbente(incumbente_cfg: dict, r_final: int,
 
 
 def _correr_una(modulo: str, seed: int, n_trials: int, r_final: int,
-                out_dir: Path) -> dict:
+                out_dir: Path, resume: bool = False) -> dict:
     """
     Ejecuta un módulo con una macro-seed. Guarda JSON individual.
+    Si resume=True y el JSON ya existe, lo carga sin re-ejecutar.
     Esta función corre en un proceso separado.
     """
+    f_json = out_dir / f"resultado_{modulo}_seed{seed:02d}.json"
+    if resume and f_json.exists():
+        try:
+            registro = json.loads(f_json.read_text())
+            log.info("↩ %s seed=%02d cargado desde JSON (resume)", modulo, seed)
+            return registro
+        except Exception as e:
+            log.warning("No se pudo cargar %s: %s — se re-ejecuta", f_json, e)
+
     t0 = time.time()
     resultado_bruto = None
 
@@ -588,14 +598,22 @@ def _tabla_resumen(grupos: dict[str, list[dict]], out_dir: Path,
 
 def ejecutar(modulos: list[str], n_seeds: int, n_trials: int,
              r_final: int, n_cores: int, out_dir: Path,
-             baseline: float = 270.0) -> None:
+             baseline: float = 270.0, resume: bool = False) -> None:
 
     out_dir.mkdir(parents=True, exist_ok=True)
     tareas = [(m, s) for m in modulos for s in range(n_seeds)]
 
+    if resume:
+        ya_hechas = sum(
+            1 for m, s in tareas
+            if (out_dir / f"resultado_{m}_seed{s:02d}.json").exists()
+        )
+        log.info("Modo resume: %d/%d corridas ya completadas en disco",
+                 ya_hechas, len(tareas))
+
     t0 = time.time()
     log.info("=" * 65)
-    log.info("Benchmark riguroso IFORS")
+    log.info("Benchmark riguroso IFORS%s", " (RESUME)" if resume else "")
     log.info("Módulos: %s", modulos)
     log.info("Seeds: %d  |  n_trials: %d  |  r_final: %d  |  cores: %d",
              n_seeds, n_trials, r_final, n_cores)
@@ -606,7 +624,7 @@ def ejecutar(modulos: list[str], n_seeds: int, n_trials: int,
     resultados = []
     with concurrent.futures.ProcessPoolExecutor(max_workers=n_cores) as ex:
         futuros = {
-            ex.submit(_correr_una, m, s, n_trials, r_final, out_dir): (m, s)
+            ex.submit(_correr_una, m, s, n_trials, r_final, out_dir, resume): (m, s)
             for m, s in tareas
         }
         for i, fut in enumerate(concurrent.futures.as_completed(futuros), 1):
@@ -668,6 +686,8 @@ def main():
                    help="Valor baseline del DES (default 270 días).")
     p.add_argument("--out",      default="resultados_rigurosos",
                    help="Directorio de salida.")
+    p.add_argument("--resume",   action="store_true",
+                   help="Reanuda corrida: carga JSONs existentes y salta corridas ya completadas.")
     args = p.parse_args()
 
     logging.basicConfig(
@@ -683,6 +703,7 @@ def main():
         n_cores  = args.n_cores,
         out_dir  = Path(args.out),
         baseline = args.baseline,
+        resume   = args.resume,
     )
 
 
