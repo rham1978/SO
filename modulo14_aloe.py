@@ -2826,8 +2826,10 @@ class ResultadoSTRONG:
     #  exitoso, etapa (1 o 2), rho}
 
 
-def _strong_eval(x_norm, n, seed_base, seed_off, objetivo, n_workers):
-    """Evalúa F̄(x,n) y σ̂. Retorna (media, sigma, valores)."""
+def _strong_eval(x_norm, n, seed_base, seed_off, objetivo, n_workers,
+                 timeout_seg: float = 600.0):
+    """Evalúa F̄(x,n) y σ̂. Retorna (media, sigma, valores).
+    Réplicas que superan timeout_seg son descartadas (evita deadlock del DES)."""
     _, CFG_base, _, _, _ = _importar_baseline()
     cfg_d = _norm_to_cfg(x_norm)
     cfg_d_sim = {**dataclasses.asdict(CFG_base)}
@@ -2837,11 +2839,27 @@ def _strong_eval(x_norm, n, seed_base, seed_off, objetivo, n_workers):
 
     tasks = [(seed_base + seed_off + r, cfg_dict, objetivo, {}) for r in range(n)]
     workers = min(n_workers if n_workers > 0 else n, n, multiprocessing.cpu_count())
+    vals = []
     if workers <= 1 or n == 1:
-        vals = [_worker_run_once(t) for t in tasks]
+        for t in tasks:
+            try:
+                with concurrent.futures.ProcessPoolExecutor(max_workers=1) as ex:
+                    fut = ex.submit(_worker_run_once, t)
+                    vals.append(fut.result(timeout=timeout_seg))
+            except concurrent.futures.TimeoutError:
+                log.warning("_strong_eval: réplica descartada por timeout (%.0fs)", timeout_seg)
+            except Exception as e:
+                log.warning("_strong_eval: réplica descartada por error: %s", e)
     else:
         with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as ex:
-            vals = list(ex.map(_worker_run_once, tasks))
+            futuros = {ex.submit(_worker_run_once, t): t for t in tasks}
+            for fut in concurrent.futures.as_completed(futuros, timeout=timeout_seg * 2):
+                try:
+                    vals.append(fut.result(timeout=timeout_seg))
+                except concurrent.futures.TimeoutError:
+                    log.warning("_strong_eval: réplica descartada por timeout (%.0fs)", timeout_seg)
+                except Exception as e:
+                    log.warning("_strong_eval: réplica descartada por error: %s", e)
     vals = [v for v in vals if v < 1e8] or [1e9]
     media = float(np.mean(vals))
     sigma = float(np.std(vals, ddof=1)) if len(vals) > 1 else float(abs(media) * 0.1)
