@@ -154,12 +154,20 @@ def _random_search_runner(n_trials: int, seed: int, n_reps: int = 3) -> dict:
         cfg.not_contactable_p            = float(vals.get("pct_no_contactabilidad", 0.30))
         cfg.blocked_pct_post_control     = float(vals.get("pct_bloqueo_post_control", 0.34))
 
-        # Evaluar con n_reps réplicas (CRN por seed)
+        # Evaluar con n_reps réplicas (CRN por seed) — timeout anti-deadlock DES
         resultados_rep = []
         for r in range(n_reps):
             try:
-                res = run_once(seed_offset=seed_off + trial * n_reps + r, cfg=cfg)
-                resultados_rep.append(float(res["tts_full_days_mean"]))
+                with concurrent.futures.ProcessPoolExecutor(max_workers=1) as _ex:
+                    _fut = _ex.submit(
+                        _worker_run_once,
+                        (seed_off + trial * n_reps + r,
+                         dataclasses.asdict(cfg), "tts_full_days_mean", {})
+                    )
+                    res_val = _fut.result(timeout=600.0)
+                resultados_rep.append(float(res_val))
+            except concurrent.futures.TimeoutError:
+                log.warning("RS trial=%d rep=%d descartada por timeout (600s)", trial, r)
             except Exception as e:
                 log.warning("RS trial=%d rep=%d error: %s", trial, r, e)
 
