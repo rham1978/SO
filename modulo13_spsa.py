@@ -670,6 +670,9 @@ def _worker_run_once(args: tuple) -> float:
         from simulador_clinica_baseline import run_once, SimConfig
         cfg = SimConfig(**cfg_dict)
         res = run_once(seed_offset=seed_offset, cfg=cfg)
+        if objetivo == "compuesto" and pesos_kpi:
+            return sum(float(pesos_kpi.get(k, 0.0)) * float(res.get(k, 0.0))
+                       for k in pesos_kpi)
         return float(res.get(objetivo, 1e9))
     except Exception as e:
         import logging
@@ -2327,6 +2330,7 @@ def optimizar_spsa(
     seed:      int   = 42,
     seed_base: int   = 202,
     objetivo:  str   = "tts_full_days_mean",
+    pesos_kpi: dict  = None,
     n_workers: int   = 0,
     max_iter:  int   = 200,
     alpha:     float = 0.602,
@@ -2354,7 +2358,7 @@ def optimizar_spsa(
     f_inc, x_inc = float("inf"), xk.copy()
 
     # Evaluación inicial
-    fk, _, _ = _strong_eval(xk, n_reps, seed_base, seed_off, objetivo, n_workers)
+    fk, _, _ = _strong_eval(xk, n_reps, seed_base, seed_off, objetivo, n_workers, pesos_kpi=pesos_kpi)
     seed_off += n_reps
     f_inc, x_inc = fk, xk.copy()
     historia.append({"iter": 0, "costo": round(fk, 4),
@@ -2375,9 +2379,9 @@ def optimizar_spsa(
         # 2 evaluaciones
         xp = np.clip(xk + ck * delta_k, 0.0, 1.0)
         xm = np.clip(xk - ck * delta_k, 0.0, 1.0)
-        fp, _, _ = _strong_eval(xp, n_reps, seed_base, seed_off, objetivo, n_workers)
+        fp, _, _ = _strong_eval(xp, n_reps, seed_base, seed_off, objetivo, n_workers, pesos_kpi=pesos_kpi)
         seed_off += n_reps
-        fm, _, _ = _strong_eval(xm, n_reps, seed_base, seed_off, objetivo, n_workers)
+        fm, _, _ = _strong_eval(xm, n_reps, seed_base, seed_off, objetivo, n_workers, pesos_kpi=pesos_kpi)
         seed_off += n_reps
 
         # Gradiente SPSA
@@ -2393,7 +2397,7 @@ def optimizar_spsa(
         xk_new = np.clip(xk - ak * g_avg, 0.0, 1.0)
 
         # Evaluar nuevo punto
-        f_new, _, _ = _strong_eval(xk_new, n_reps, seed_base, seed_off, objetivo, n_workers)
+        f_new, _, _ = _strong_eval(xk_new, n_reps, seed_base, seed_off, objetivo, n_workers, pesos_kpi=pesos_kpi)
         seed_off += n_reps
         xk = xk_new
 
@@ -2559,7 +2563,7 @@ class ResultadoSTRONG:
 
 
 def _strong_eval(x_norm, n, seed_base, seed_off, objetivo, n_workers,
-                 timeout_seg: float = 600.0):
+                 timeout_seg: float = 600.0, pesos_kpi: dict = None):
     """Evalúa F̄(x,n) y σ̂. Retorna (media, sigma, valores).
     Réplicas que superan timeout_seg son descartadas (evita deadlock del DES)."""
     _, CFG_base, _, _, _ = _importar_baseline()
@@ -2569,7 +2573,7 @@ def _strong_eval(x_norm, n, seed_base, seed_off, objetivo, n_workers,
     cfg_obj = CFG_base.__class__(**cfg_d_sim)
     cfg_dict = dataclasses.asdict(cfg_obj)
 
-    tasks = [(seed_base + seed_off + r, cfg_dict, objetivo, {}) for r in range(n)]
+    tasks = [(seed_base + seed_off + r, cfg_dict, objetivo, pesos_kpi or {}) for r in range(n)]
     workers = min(n_workers if n_workers > 0 else n, n, multiprocessing.cpu_count())
     vals = []
     if workers <= 1 or n == 1:

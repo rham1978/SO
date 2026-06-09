@@ -2481,6 +2481,9 @@ def run_once(seed_offset=0, cfg: SimConfig = None):
     res["post_ctrl_bookings"] = k.post_control_bookings
     res["post_ctrl_attended"] = k.post_control_attended
     res["post_ctrl_blocked"]  = k.post_control_blocked
+    res["total_atenciones_first"] = k.attended
+    res["total_atenciones_post"]  = k.post_completed
+    res["total_atenciones"]       = k.attended + k.post_completed
 
     res["post_route_control"] = k.post_route_counts.get("control", 0)
     res["post_route_preq"]    = k.post_route_counts.get("preq", 0)

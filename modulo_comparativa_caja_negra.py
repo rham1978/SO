@@ -232,7 +232,8 @@ def _tiempos_convergencia(historia_costos: list):
 # Runners para cada módulo
 # ═════════════════════════════════════════════════════════════════
 
-def run_m4_blackbox(n_trials: int = 30, n_corridas: int = 2, seed: int = 42) -> dict:
+def run_m4_blackbox(n_trials: int = 30, n_corridas: int = 2, seed: int = 42,
+                    pesos_kpi: dict = None) -> dict:
     """M4: SMAC BlackBox (Gaussian Process + EI)."""
     log.info("▶ M4 — SMAC BlackBox (GP+EI)  [n_trials=%d, n_corridas=%d]",
              n_trials, n_corridas)
@@ -242,6 +243,8 @@ def run_m4_blackbox(n_trials: int = 30, n_corridas: int = 2, seed: int = 42) -> 
         n_trials         = n_trials,
         n_corridas_eval  = n_corridas,
         seed             = seed,
+        objetivo         = "compuesto" if pesos_kpi else "tts_full_days_mean",
+        pesos_kpi        = pesos_kpi,
         guardar_json     = "resultado_comparativa_m4.json",
         output_dir       = "smac_comp_m4",
     )
@@ -259,7 +262,8 @@ def run_m4_blackbox(n_trials: int = 30, n_corridas: int = 2, seed: int = 42) -> 
     }
 
 
-def run_m7_sk(n_trials: int = 30, n_corridas: int = 2, seed: int = 42) -> dict:
+def run_m7_sk(n_trials: int = 30, n_corridas: int = 2, seed: int = 42,
+              pesos_kpi: dict = None) -> dict:
     """M7: SMAC + Stochastic Kriging (EI)."""
     log.info("▶ M7 — SMAC + SK (EI)  [n_trials=%d, n_corridas=%d]", n_trials, n_corridas)
     import modulo7_smac_sk as m7
@@ -268,6 +272,8 @@ def run_m7_sk(n_trials: int = 30, n_corridas: int = 2, seed: int = 42) -> dict:
         n_trials         = n_trials,
         n_corridas_eval  = n_corridas,
         seed             = seed,
+        objetivo         = "compuesto" if pesos_kpi else "tts_full_days_mean",
+        pesos_kpi        = pesos_kpi,
         guardar_json     = "resultado_comparativa_m7.json",
         output_dir       = "smac_comp_m7",
     )
@@ -285,7 +291,8 @@ def run_m7_sk(n_trials: int = 30, n_corridas: int = 2, seed: int = 42) -> dict:
     }
 
 
-def run_m8_sk_adaptativo(n_trials: int = 30, n_corridas: int = 2, seed: int = 42) -> dict:
+def run_m8_sk_adaptativo(n_trials: int = 30, n_corridas: int = 2, seed: int = 42,
+                         pesos_kpi: dict = None) -> dict:
     """M8: SMAC + SK con replicación adaptativa."""
     log.info("▶ M8 — SK Adaptativo  [n_trials=%d]", n_trials)
     import modulo8_sk_adaptativo_paralelizado as m8
@@ -298,6 +305,8 @@ def run_m8_sk_adaptativo(n_trials: int = 30, n_corridas: int = 2, seed: int = 42
         n_min_reps       = 2,
         n_max_reps       = 6,
         n_warmup         = min(10, n_trials // 3),
+        objetivo         = "compuesto" if pesos_kpi else "tts_full_days_mean",
+        pesos_kpi        = pesos_kpi,
         guardar_json     = "resultado_comparativa_m8.json",
         output_dir       = "smac_comp_m8",
     )
@@ -317,7 +326,8 @@ def run_m8_sk_adaptativo(n_trials: int = 30, n_corridas: int = 2, seed: int = 42
     }
 
 
-def run_m9_revi(n_trials: int = 30, n_corridas: int = 2, seed: int = 42) -> dict:
+def run_m9_revi(n_trials: int = 30, n_corridas: int = 2, seed: int = 42,
+                pesos_kpi: dict = None) -> dict:
     """M9: SMAC + SK con REVI."""
     log.info("▶ M9 — SK-REVI  [n_trials=%d]", n_trials)
     import modulo9_sk_revi as m9
@@ -330,6 +340,8 @@ def run_m9_revi(n_trials: int = 30, n_corridas: int = 2, seed: int = 42) -> dict
         n_min_reps       = 2,
         n_max_reps       = 6,
         n_warmup         = min(10, n_trials // 3),
+        objetivo         = "compuesto" if pesos_kpi else "tts_full_days_mean",
+        pesos_kpi        = pesos_kpi,
         guardar_json     = "resultado_comparativa_m9.json",
         output_dir       = "smac_comp_m9",
     )
@@ -349,7 +361,8 @@ def run_m9_revi(n_trials: int = 30, n_corridas: int = 2, seed: int = 42) -> dict
     }
 
 
-def run_m10_kgcp(n_trials: int = 30, n_corridas: int = 2, seed: int = 42) -> dict:
+def run_m10_kgcp(n_trials: int = 30, n_corridas: int = 2, seed: int = 42,
+                 pesos_kpi: dict = None) -> dict:
     """M10: SMAC + SK con KGCP."""
     log.info("▶ M10 — SK-KGCP  [n_trials=%d]", n_trials)
     import modulo10_sk_kgcp as m10
@@ -360,6 +373,8 @@ def run_m10_kgcp(n_trials: int = 30, n_corridas: int = 2, seed: int = 42) -> dic
         seed             = seed,
         n_kgcp_mc        = 32,
         n_kgcp_cand      = 200,
+        objetivo         = "compuesto" if pesos_kpi else "tts_full_days_mean",
+        pesos_kpi        = pesos_kpi,
         guardar_json     = "resultado_comparativa_m10.json",
         output_dir       = "smac_comp_m10",
     )
@@ -379,7 +394,8 @@ def run_m10_kgcp(n_trials: int = 30, n_corridas: int = 2, seed: int = 42) -> dic
     }
 
 
-def run_m11_astrodf(max_iter: int = 50, n_workers: int = 0, seed: int = 42) -> dict:
+def run_m11_astrodf(max_iter: int = 50, n_workers: int = 0, seed: int = 42,
+                    pesos_kpi: dict = None) -> dict:
     """M11: ASTRO-DF (trust-region lineal con muestreo adaptativo)."""
     log.info("▶ M11 — ASTRO-DF  [max_iter=%d]", max_iter)
     import modulo_11_astrodf as m11
@@ -387,6 +403,8 @@ def run_m11_astrodf(max_iter: int = 50, n_workers: int = 0, seed: int = 42) -> d
         seed             = seed,
         max_iter         = max_iter,
         n_workers        = n_workers,
+        objetivo         = "compuesto" if pesos_kpi else "tts_full_days_mean",
+        pesos_kpi        = pesos_kpi,
         guardar_json     = "resultado_comparativa_m11.json",
     )
     conv_eval = _convergencia_iterativa(res.historia_costos)
@@ -403,7 +421,8 @@ def run_m11_astrodf(max_iter: int = 50, n_workers: int = 0, seed: int = 42) -> d
     }
 
 
-def run_m12_strong(max_iter: int = 50, n_workers: int = 0, seed: int = 42) -> dict:
+def run_m12_strong(max_iter: int = 50, n_workers: int = 0, seed: int = 42,
+                   pesos_kpi: dict = None) -> dict:
     """M12: STRONG (trust-region cuadrático)."""
     log.info("▶ M12 — STRONG  [max_iter=%d]", max_iter)
     import modulo12_strong as m12
@@ -411,6 +430,8 @@ def run_m12_strong(max_iter: int = 50, n_workers: int = 0, seed: int = 42) -> di
         seed             = seed,
         max_iter         = max_iter,
         n_workers        = n_workers,
+        objetivo         = "compuesto" if pesos_kpi else "tts_full_days_mean",
+        pesos_kpi        = pesos_kpi,
         guardar_json     = "resultado_comparativa_m12.json",
     )
     conv_eval = _convergencia_iterativa(res.historia_costos)
@@ -427,7 +448,8 @@ def run_m12_strong(max_iter: int = 50, n_workers: int = 0, seed: int = 42) -> di
     }
 
 
-def run_m13_spsa(max_iter: int = 50, n_reps: int = 5, n_workers: int = 0, seed: int = 42) -> dict:
+def run_m13_spsa(max_iter: int = 50, n_reps: int = 5, n_workers: int = 0, seed: int = 42,
+                 pesos_kpi: dict = None) -> dict:
     """M13: SPSA (gradiente por perturbación simultánea)."""
     log.info("▶ M13 — SPSA  [max_iter=%d, n_reps=%d]", max_iter, n_reps)
     import modulo13_spsa as m13
@@ -436,6 +458,8 @@ def run_m13_spsa(max_iter: int = 50, n_reps: int = 5, n_workers: int = 0, seed: 
         max_iter         = max_iter,
         n_reps           = n_reps,
         n_workers        = n_workers,
+        objetivo         = "compuesto" if pesos_kpi else "tts_full_days_mean",
+        pesos_kpi        = pesos_kpi,
         guardar_json     = "resultado_comparativa_m13.json",
     )
     conv_eval = _convergencia_iterativa(res.historia_costos, evals_por_iter=2*n_reps)
@@ -452,7 +476,8 @@ def run_m13_spsa(max_iter: int = 50, n_reps: int = 5, n_workers: int = 0, seed: 
     }
 
 
-def run_m14_aloe(max_iter: int = 50, r: int = 5, n_workers: int = 0, seed: int = 42) -> dict:
+def run_m14_aloe(max_iter: int = 50, r: int = 5, n_workers: int = 0, seed: int = 42,
+                 pesos_kpi: dict = None) -> dict:
     """M14: ALOE (Armijo relajado + diferencias finitas)."""
     log.info("▶ M14 — ALOE  [max_iter=%d, r=%d]", max_iter, r)
     import modulo14_aloe as m14
@@ -461,6 +486,8 @@ def run_m14_aloe(max_iter: int = 50, r: int = 5, n_workers: int = 0, seed: int =
         max_iter         = max_iter,
         r                = r,
         n_workers        = n_workers,
+        objetivo         = "compuesto" if pesos_kpi else "tts_full_days_mean",
+        pesos_kpi        = pesos_kpi,
         guardar_json     = "resultado_comparativa_m14.json",
     )
     # ALOE: por iteración → gradiente (2*d evals con n_grad=2 fijo) + 2 evals Armijo
@@ -539,6 +566,7 @@ def ejecutar_comparativa(
     n_workers:  int  = 0,
     seed:       int  = 42,
     guardar_json: str = "resultados_comparativa.json",
+    pesos_kpi:  dict = None,
 ) -> dict:
     """
     Corre la comparativa para los módulos indicados.
@@ -556,15 +584,19 @@ def ejecutar_comparativa(
         try:
             kwargs = {}
             if m in ("M4", "M7", "M8", "M9", "M10"):
-                kwargs = {"n_trials": n_trials, "n_corridas": n_corridas, "seed": seed}
+                kwargs = {"n_trials": n_trials, "n_corridas": n_corridas, "seed": seed,
+                          "pesos_kpi": pesos_kpi}
             elif m in ("M11", "M12"):
-                kwargs = {"max_iter": max_iter, "n_workers": n_workers, "seed": seed}
+                kwargs = {"max_iter": max_iter, "n_workers": n_workers, "seed": seed,
+                          "pesos_kpi": pesos_kpi}
             elif m == "M13":
                 kwargs = {"max_iter": max_iter, "n_reps": n_reps,
-                          "n_workers": n_workers, "seed": seed}
+                          "n_workers": n_workers, "seed": seed,
+                          "pesos_kpi": pesos_kpi}
             elif m == "M14":
                 kwargs = {"max_iter": max_iter, "r": n_reps,
-                          "n_workers": n_workers, "seed": seed}
+                          "n_workers": n_workers, "seed": seed,
+                          "pesos_kpi": pesos_kpi}
 
             res = _RUNNERS[m](**kwargs)
             resultados[m] = res
@@ -932,6 +964,9 @@ def _build_parser():
                    help="Prefijo de archivos PNG de salida")
     p.add_argument("--solo_graficas", default=None, metavar="JSON",
                    help="Re-graficar desde JSON ya existente (no re-ejecuta)")
+    p.add_argument("--lambda_obj", type=float, default=None,
+                   help="Valor λ para objetivo compuesto f=tts - λ·total_atenciones "
+                        "(obtenido con calibrar_lambda.py). Si se omite usa sólo TTS.")
     return p
 
 
@@ -948,6 +983,12 @@ def main():
     if "todos" in modulos:
         modulos = list(_RUNNERS.keys())
 
+    pesos_kpi = None
+    if args.lambda_obj is not None:
+        pesos_kpi = {"tts_full_days_mean": 1.0, "total_atenciones": -args.lambda_obj}
+        log.info("Objetivo compuesto activo: f = tts_full - %.4f · total_atenciones",
+                 args.lambda_obj)
+
     resultados = ejecutar_comparativa(
         modulos     = modulos,
         n_trials    = args.n_trials,
@@ -957,6 +998,7 @@ def main():
         n_workers   = args.n_workers,
         seed        = args.seed,
         guardar_json= args.json,
+        pesos_kpi   = pesos_kpi,
     )
 
     if resultados:

@@ -99,17 +99,33 @@ ESTILO = {
 FAMILIA_SMAC = {"M4", "M7", "M8", "M9", "M10"}
 FAMILIA_ITER = {"M11", "M12", "M13", "M14"}
 
+
+def _worker_run_once(args):
+    """Module-level worker for ProcessPoolExecutor (must be picklable)."""
+    seed_offset, cfg_dict, objetivo, pesos_kpi = args
+    from simulador_clinica_baseline import run_once, SimConfig
+    import dataclasses
+    cfg = SimConfig(**{k: v for k, v in cfg_dict.items()
+                       if k in SimConfig.__dataclass_fields__})
+    res = run_once(seed_offset=seed_offset, cfg=cfg)
+    if objetivo == "compuesto" and pesos_kpi:
+        return sum(float(pesos_kpi.get(k, 0.0)) * float(res.get(k, 0.0))
+                   for k in pesos_kpi)
+    return float(res.get(objetivo, 1e9))
+
+
 # ───────────────────────────────────────────────────────────────────────
 # Random Search (baseline) — implementado aquí, no depende de main
 # ───────────────────────────────────────────────────────────────────────
 
-def _random_search_runner(n_trials: int, seed: int, n_reps: int = 3) -> dict:
+def _random_search_runner(n_trials: int, seed: int, n_reps: int = 3,
+                           pesos_kpi: dict = None) -> dict:
     """
     Evalúa n_trials puntos aleatorios en el espacio de parámetros.
     Usa la infraestructura de main (PARAM_NAMES, PARAM_RANGES, run_once, SimConfig).
     """
     import modulo_comparativa_caja_negra as comp
-    from simulador_clinica_baseline import run_once, SimConfig, CFG
+    from simulador_clinica_baseline import SimConfig, CFG
     import dataclasses
 
     PARAM_NAMES = comp.PARAM_NAMES
@@ -119,6 +135,9 @@ def _random_search_runner(n_trials: int, seed: int, n_reps: int = 3) -> dict:
         "cupos_ecografia_matrona", "cupos_ecografia_ugd", "dias_publicacion",
         "num_matronas", "num_agentes_ugd",
     }
+
+    objetivo_kpi = "compuesto" if pesos_kpi else "tts_full_days_mean"
+    kpi_dict = pesos_kpi or {}
 
     rng = np.random.RandomState(seed)
     historia = []
@@ -162,7 +181,7 @@ def _random_search_runner(n_trials: int, seed: int, n_reps: int = 3) -> dict:
                     _fut = _ex.submit(
                         _worker_run_once,
                         (seed_off + trial * n_reps + r,
-                         dataclasses.asdict(cfg), "tts_full_days_mean", {})
+                         dataclasses.asdict(cfg), objetivo_kpi, kpi_dict)
                     )
                     res_val = _fut.result(timeout=600.0)
                 resultados_rep.append(float(res_val))
@@ -256,7 +275,8 @@ def _evals_por_iter(modulo: str, params: dict) -> int:
 
 
 def _re_evaluar_incumbente(incumbente_cfg: dict, r_final: int,
-                            seed_offset_base: int = 500_000) -> dict:
+                            seed_offset_base: int = 500_000,
+                            pesos_kpi: dict = None) -> dict:
     """
     Re-evalúa la configuración incumbente con r_final réplicas frescas.
     Usa offsets en un bloque separado para no solapar con la optimización.
@@ -266,11 +286,6 @@ def _re_evaluar_incumbente(incumbente_cfg: dict, r_final: int,
 
     try:
         cfg = dataclasses.replace(CFG)
-        ENTEROS = {
-            "horas_especialista_1ra", "horas_control_post", "cupos_laboratorio_ugd",
-            "cupos_ecografia_matrona", "cupos_ecografia_ugd", "dias_publicacion",
-            "num_matronas", "num_agentes_ugd",
-        }
         cfg.fixed_weekly_capacity        = int(round(incumbente_cfg.get("horas_especialista_1ra", 16)))
         cfg.use_fixed_weekly_capacity    = True
         cfg.fixed_post_control_capacity  = int(round(incumbente_cfg.get("horas_control_post", 40)))
@@ -286,8 +301,15 @@ def _re_evaluar_incumbente(incumbente_cfg: dict, r_final: int,
         cfg.not_contactable_p            = float(incumbente_cfg.get("pct_no_contactabilidad", 0.30))
         cfg.blocked_pct_post_control     = float(incumbente_cfg.get("pct_bloqueo_post_control", 0.34))
 
-        vals = [float(run_once(seed_offset=seed_offset_base + r, cfg=cfg)["tts_full_days_mean"])
-                for r in range(r_final)]
+        if pesos_kpi:
+            vals = []
+            for r in range(r_final):
+                res = run_once(seed_offset=seed_offset_base + r, cfg=cfg)
+                vals.append(sum(float(pesos_kpi.get(k, 0.0)) * float(res.get(k, 0.0))
+                                for k in pesos_kpi))
+        else:
+            vals = [float(run_once(seed_offset=seed_offset_base + r, cfg=cfg)["tts_full_days_mean"])
+                    for r in range(r_final)]
         arr = np.array(vals)
         return {
             "media":   float(arr.mean()),
@@ -303,7 +325,8 @@ def _re_evaluar_incumbente(incumbente_cfg: dict, r_final: int,
 
 
 def _correr_una(modulo: str, seed: int, n_trials: int, r_final: int,
-                out_dir: Path, resume: bool = False) -> dict:
+                out_dir: Path, resume: bool = False,
+                pesos_kpi: dict = None) -> dict:
     """
     Ejecuta un módulo con una macro-seed. Guarda JSON individual.
     Si resume=True y el JSON ya existe, lo carga sin re-ejecutar.
@@ -323,9 +346,9 @@ def _correr_una(modulo: str, seed: int, n_trials: int, r_final: int,
 
     try:
         if modulo == "RS":
-            resultado_bruto = _random_search_runner(n_trials=n_trials, seed=seed)
+            resultado_bruto = _random_search_runner(n_trials=n_trials, seed=seed,
+                                                    pesos_kpi=pesos_kpi)
             historia = resultado_bruto["historia_costos"]
-            evals_iter = 3  # n_reps por defecto de RS
             import modulo_comparativa_caja_negra as comp
             conv_eval = comp._convergencia_iterativa(historia)
             conv_time = comp._tiempos_convergencia(historia)
@@ -333,6 +356,7 @@ def _correr_una(modulo: str, seed: int, n_trials: int, r_final: int,
         elif modulo in FAMILIA_SMAC:
             import modulo_comparativa_caja_negra as comp
             params = _params_para_runner(modulo, n_trials, seed)
+            params["pesos_kpi"] = pesos_kpi
             resultado_bruto = comp._RUNNERS[modulo](**params)
             conv_eval = resultado_bruto.get("conv_eval", [])
             conv_time = resultado_bruto.get("conv_time", [])
@@ -341,7 +365,7 @@ def _correr_una(modulo: str, seed: int, n_trials: int, r_final: int,
         elif modulo in FAMILIA_ITER:
             import modulo_comparativa_caja_negra as comp
             params = _params_para_runner(modulo, n_trials, seed)
-            evals_it = _evals_por_iter(modulo, params)
+            params["pesos_kpi"] = pesos_kpi
             resultado_bruto = comp._RUNNERS[modulo](**params)
             conv_eval = resultado_bruto.get("conv_eval", [])
             conv_time = resultado_bruto.get("conv_time", [])
@@ -354,7 +378,8 @@ def _correr_una(modulo: str, seed: int, n_trials: int, r_final: int,
         if isinstance(incumbente_cfg, dict) and incumbente_cfg:
             reeval = _re_evaluar_incumbente(
                 incumbente_cfg, r_final,
-                seed_offset_base=500_000 + seed * r_final
+                seed_offset_base=500_000 + seed * r_final,
+                pesos_kpi=pesos_kpi,
             )
         else:
             reeval = {"media": float("nan"), "sd": float("nan"),
@@ -606,7 +631,8 @@ def _tabla_resumen(grupos: dict[str, list[dict]], out_dir: Path,
 
 def ejecutar(modulos: list[str], n_seeds: int, n_trials: int,
              r_final: int, n_cores: int, out_dir: Path,
-             baseline: float = 270.0, resume: bool = False) -> None:
+             baseline: float = 270.0, resume: bool = False,
+             pesos_kpi: dict = None) -> None:
 
     out_dir.mkdir(parents=True, exist_ok=True)
     tareas = [(m, s) for m in modulos for s in range(n_seeds)]
@@ -625,6 +651,8 @@ def ejecutar(modulos: list[str], n_seeds: int, n_trials: int,
     log.info("Módulos: %s", modulos)
     log.info("Seeds: %d  |  n_trials: %d  |  r_final: %d  |  cores: %d",
              n_seeds, n_trials, r_final, n_cores)
+    if pesos_kpi:
+        log.info("Objetivo compuesto: %s", pesos_kpi)
     log.info("Total de corridas: %d", len(tareas))
     log.info("Salida: %s", out_dir)
     log.info("=" * 65)
@@ -632,7 +660,7 @@ def ejecutar(modulos: list[str], n_seeds: int, n_trials: int,
     resultados = []
     with concurrent.futures.ProcessPoolExecutor(max_workers=n_cores) as ex:
         futuros = {
-            ex.submit(_correr_una, m, s, n_trials, r_final, out_dir, resume): (m, s)
+            ex.submit(_correr_una, m, s, n_trials, r_final, out_dir, resume, pesos_kpi): (m, s)
             for m, s in tareas
         }
         for i, fut in enumerate(concurrent.futures.as_completed(futuros), 1):
@@ -696,6 +724,9 @@ def main():
                    help="Directorio de salida.")
     p.add_argument("--resume",   action="store_true",
                    help="Reanuda corrida: carga JSONs existentes y salta corridas ya completadas.")
+    p.add_argument("--lambda_obj", type=float, default=None,
+                   help="Valor λ para objetivo compuesto f=tts_full - λ·total_atenciones "
+                        "(obtenido con calibrar_lambda.py). Si se omite usa sólo TTS.")
     args = p.parse_args()
 
     logging.basicConfig(
@@ -703,15 +734,23 @@ def main():
         format="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%H:%M:%S",
     )
+
+    pesos_kpi = None
+    if args.lambda_obj is not None:
+        pesos_kpi = {"tts_full_days_mean": 1.0, "total_atenciones": -args.lambda_obj}
+        log.info("Objetivo compuesto activo: f = tts_full - %.4f · total_atenciones",
+                 args.lambda_obj)
+
     ejecutar(
-        modulos  = args.modulos,
-        n_seeds  = args.n_seeds,
-        n_trials = args.n_trials,
-        r_final  = args.r_final,
-        n_cores  = args.n_cores,
-        out_dir  = Path(args.out),
-        baseline = args.baseline,
-        resume   = args.resume,
+        modulos   = args.modulos,
+        n_seeds   = args.n_seeds,
+        n_trials  = args.n_trials,
+        r_final   = args.r_final,
+        n_cores   = args.n_cores,
+        out_dir   = Path(args.out),
+        baseline  = args.baseline,
+        resume    = args.resume,
+        pesos_kpi = pesos_kpi,
     )
 
 
