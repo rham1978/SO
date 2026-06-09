@@ -45,6 +45,10 @@ from pathlib import Path
 from dataclasses import dataclass, field, asdict
 from typing import Optional
 
+import concurrent.futures
+import multiprocessing
+import dataclasses
+
 import numpy as np
 from scipy.optimize import minimize
 
@@ -225,6 +229,27 @@ def _config_key(config) -> str:
     return str(sorted({k: round(float(v), 6) for k, v in dict(config).items()}.items()))
 
 
+def _m7_worker_run_once(args: tuple) -> float:
+    """Worker pickleable para ProcessPoolExecutor — anti-deadlock DES."""
+    seed_offset, cfg_dict, objetivo, pesos_kpi = args
+    try:
+        import sys, os
+        for d in [os.path.dirname(os.path.abspath(__file__)), os.getcwd()]:
+            if d not in sys.path:
+                sys.path.insert(0, d)
+        from simulador_clinica_baseline import run_once, SimConfig
+        cfg = SimConfig(**cfg_dict)
+        res = run_once(seed_offset=seed_offset, cfg=cfg)
+        if objetivo == "compuesto" and pesos_kpi:
+            return sum(float(pesos_kpi.get(k, 0.0)) * float(res.get(k, 0.0))
+                       for k in pesos_kpi)
+        return float(res.get(objetivo, 1e9))
+    except Exception as e:
+        import logging
+        logging.getLogger("smac_sk").warning("Worker M7 error seed=%d: %s", seed_offset, e)
+        return 1e9
+
+
 # ──────────────────────────────────────────────────────────────
 # Función objetivo — guarda varianza para SK
 # ──────────────────────────────────────────────────────────────
@@ -250,15 +275,18 @@ def evaluar_configuracion_sk(
     _N_REPS_GLOBAL = n
 
     valores = []
+    cfg_dict = dataclasses.asdict(cfg)
+    pesos = pesos_kpi or {}
     for r in range(n):
         try:
-            res = run_once(seed_offset=seed_base + seed + r, cfg=cfg)
-            if objetivo == "compuesto" and pesos_kpi:
-                val = sum(float(pesos_kpi.get(k, 0.0)) * float(res.get(k, 0.0))
-                          for k in pesos_kpi)
-            else:
-                val = float(res.get(objetivo, 1e9))
+            with concurrent.futures.ProcessPoolExecutor(max_workers=1) as _ex:
+                _fut = _ex.submit(_m7_worker_run_once,
+                                  (seed_base + seed + r, cfg_dict, objetivo, pesos))
+                val = _fut.result(timeout=600.0)
             valores.append(val)
+        except concurrent.futures.TimeoutError:
+            log.warning("M7 réplica %d descartada por timeout (600s)", r)
+            valores.append(1e9)
         except Exception as e:
             log.warning("Error corrida %d: %s", r, e)
             valores.append(1e9)

@@ -2401,11 +2401,29 @@ def _astro_eval_point(
     workers = min(n_workers if n_workers > 0 else n,
                   n, multiprocessing.cpu_count())
 
+    _TIMEOUT = 600.0
+    vals: list = []
     if workers <= 1 or n == 1:
-        valores = [_worker_run_once(t) for t in tasks]
+        for t in tasks:
+            try:
+                with concurrent.futures.ProcessPoolExecutor(max_workers=1) as _ex:
+                    _fut = _ex.submit(_worker_run_once, t)
+                    vals.append(_fut.result(timeout=_TIMEOUT))
+            except concurrent.futures.TimeoutError:
+                log.warning("_astro_eval_point: réplica descartada por timeout (%.0fs)", _TIMEOUT)
+            except Exception as e:
+                log.warning("_astro_eval_point: réplica descartada por error: %s", e)
     else:
         with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as ex:
-            valores = list(ex.map(_worker_run_once, tasks))
+            futuros = {ex.submit(_worker_run_once, t): t for t in tasks}
+            for fut in concurrent.futures.as_completed(futuros, timeout=_TIMEOUT * 2):
+                try:
+                    vals.append(fut.result(timeout=_TIMEOUT))
+                except concurrent.futures.TimeoutError:
+                    log.warning("_astro_eval_point: réplica descartada por timeout (%.0fs)", _TIMEOUT)
+                except Exception as e:
+                    log.warning("_astro_eval_point: réplica descartada por error: %s", e)
+    valores = vals
 
     valores = [v for v in valores if v < 1e8]
     if not valores:
