@@ -277,13 +277,25 @@ def _evals_por_iter(modulo: str, params: dict) -> int:
 
 def _re_evaluar_incumbente(incumbente_cfg: dict, r_final: int,
                             seed_offset_base: int = 500_000,
-                            pesos_kpi: dict = None) -> dict:
+                            pesos_kpi: dict = None) -> tuple:
     """
     Re-evalúa la configuración incumbente con r_final réplicas frescas.
     Usa offsets en un bloque separado para no solapar con la optimización.
+
+    Retorna (reeval_dict, kpis_dict) donde:
+      reeval_dict  — estadísticos del objetivo optimizado (compuesto o TTS)
+      kpis_dict    — estadísticos individuales: tts_full_days_mean y total_atenciones
     """
     from simulador_clinica_baseline import run_once, SimConfig, CFG
     import dataclasses
+
+    nan_reeval = {"media": float("nan"), "sd": float("nan"),
+                  "ic95_lo": float("nan"), "ic95_hi": float("nan"), "r_final": 0}
+    nan_kpis   = {"tts_media": float("nan"), "tts_sd": float("nan"),
+                  "tts_ic95_lo": float("nan"), "tts_ic95_hi": float("nan"),
+                  "at_media": float("nan"),  "at_sd": float("nan"),
+                  "at_ic95_lo": float("nan"), "at_ic95_hi": float("nan"),
+                  "at_first_media": float("nan"), "at_post_media": float("nan")}
 
     try:
         cfg = dataclasses.replace(CFG)
@@ -303,27 +315,53 @@ def _re_evaluar_incumbente(incumbente_cfg: dict, r_final: int,
         cfg.blocked_pct_post_control     = float(incumbente_cfg.get("pct_bloqueo_post_control", 0.34))
         cfg.benchmark_mode               = True
 
-        if pesos_kpi:
-            vals = []
-            for r in range(r_final):
-                res = run_once(seed_offset=seed_offset_base + r, cfg=cfg)
-                vals.append(sum(float(pesos_kpi.get(k, 0.0)) * float(res.get(k, 0.0))
-                                for k in pesos_kpi))
-        else:
-            vals = [float(run_once(seed_offset=seed_offset_base + r, cfg=cfg)["tts_full_days_mean"])
-                    for r in range(r_final)]
-        arr = np.array(vals)
-        return {
-            "media":   float(arr.mean()),
-            "sd":      float(arr.std(ddof=1)),
-            "ic95_lo": float(arr.mean() - 1.96 * arr.std(ddof=1) / np.sqrt(r_final)),
-            "ic95_hi": float(arr.mean() + 1.96 * arr.std(ddof=1) / np.sqrt(r_final)),
-            "r_final": r_final,
+        obj_vals  = []
+        tts_vals  = []
+        at_vals   = []
+        at_f_vals = []
+        at_p_vals = []
+        for r in range(r_final):
+            res = run_once(seed_offset=seed_offset_base + r, cfg=cfg)
+            tts = float(res.get("tts_full_days_mean", float("nan")))
+            at  = float(res.get("total_atenciones",   float("nan")))
+            at_f = float(res.get("total_atenciones_first", float("nan")))
+            at_p = float(res.get("total_atenciones_post",  float("nan")))
+            tts_vals.append(tts)
+            at_vals.append(at)
+            at_f_vals.append(at_f)
+            at_p_vals.append(at_p)
+            if pesos_kpi:
+                obj_vals.append(sum(float(pesos_kpi.get(k, 0.0)) * float(res.get(k, 0.0))
+                                    for k in pesos_kpi))
+            else:
+                obj_vals.append(tts)
+
+        def _stats(arr_list):
+            a = np.array(arr_list, dtype=float)
+            n = len(a)
+            return {"media":   float(a.mean()),
+                    "sd":      float(a.std(ddof=1)),
+                    "ic95_lo": float(a.mean() - 1.96 * a.std(ddof=1) / np.sqrt(n)),
+                    "ic95_hi": float(a.mean() + 1.96 * a.std(ddof=1) / np.sqrt(n))}
+
+        obj_s = _stats(obj_vals)
+        tts_s = _stats(tts_vals)
+        at_s  = _stats(at_vals)
+
+        reeval = {**obj_s, "r_final": r_final}
+        kpis   = {
+            "tts_media":    tts_s["media"],   "tts_sd":      tts_s["sd"],
+            "tts_ic95_lo":  tts_s["ic95_lo"], "tts_ic95_hi": tts_s["ic95_hi"],
+            "at_media":     at_s["media"],    "at_sd":       at_s["sd"],
+            "at_ic95_lo":   at_s["ic95_lo"],  "at_ic95_hi":  at_s["ic95_hi"],
+            "at_first_media": float(np.mean(at_f_vals)),
+            "at_post_media":  float(np.mean(at_p_vals)),
         }
+        return reeval, kpis
+
     except Exception as e:
         log.error("Re-evaluación falló: %s", e)
-        return {"media": float("nan"), "sd": float("nan"),
-                "ic95_lo": float("nan"), "ic95_hi": float("nan"), "r_final": 0}
+        return nan_reeval, nan_kpis
 
 
 def _correr_una(modulo: str, seed: int, n_trials: int, r_final: int,
@@ -376,29 +414,36 @@ def _correr_una(modulo: str, seed: int, n_trials: int, r_final: int,
             raise ValueError(f"Módulo '{modulo}' no reconocido.")
 
         # Re-evaluación honesta del incumbente
+        _nan_reeval = {"media": float("nan"), "sd": float("nan"),
+                       "ic95_lo": float("nan"), "ic95_hi": float("nan"), "r_final": 0}
+        _nan_kpis   = {"tts_media": float("nan"), "tts_sd": float("nan"),
+                       "tts_ic95_lo": float("nan"), "tts_ic95_hi": float("nan"),
+                       "at_media": float("nan"),  "at_sd": float("nan"),
+                       "at_ic95_lo": float("nan"), "at_ic95_hi": float("nan"),
+                       "at_first_media": float("nan"), "at_post_media": float("nan")}
         incumbente_cfg = resultado_bruto.get("incumbente", {})
         if isinstance(incumbente_cfg, dict) and incumbente_cfg:
-            reeval = _re_evaluar_incumbente(
+            reeval, kpis_incumbente = _re_evaluar_incumbente(
                 incumbente_cfg, r_final,
                 seed_offset_base=500_000 + seed * r_final,
                 pesos_kpi=pesos_kpi,
             )
         else:
-            reeval = {"media": float("nan"), "sd": float("nan"),
-                      "ic95_lo": float("nan"), "ic95_hi": float("nan"), "r_final": 0}
+            reeval, kpis_incumbente = _nan_reeval, _nan_kpis
 
         registro = {
-            "modulo":          modulo,
-            "macro_seed":      seed,
-            "n_trials_param":  n_trials,
-            "n_eval_usadas":   resultado_bruto.get("n_evaluaciones",
-                               len(resultado_bruto.get("historia_costos", [])) * _evals_por_iter(modulo, {})),
-            "costo_opt":       resultado_bruto.get("costo_incumbente", float("nan")),
-            "reeval":          reeval,
-            "conv_eval":       conv_eval,
-            "conv_time":       conv_time,
-            "incumbente":      incumbente_cfg,
-            "tiempo_seg":      time.time() - t0,
+            "modulo":           modulo,
+            "macro_seed":       seed,
+            "n_trials_param":   n_trials,
+            "n_eval_usadas":    resultado_bruto.get("n_evaluaciones",
+                                len(resultado_bruto.get("historia_costos", [])) * _evals_por_iter(modulo, {})),
+            "costo_opt":        resultado_bruto.get("costo_incumbente", float("nan")),
+            "reeval":           reeval,
+            "kpis_incumbente":  kpis_incumbente,
+            "conv_eval":        conv_eval,
+            "conv_time":        conv_time,
+            "incumbente":       incumbente_cfg,
+            "tiempo_seg":       time.time() - t0,
         }
 
         # Guardar JSON individual
@@ -603,24 +648,71 @@ def _tabla_significancia(grupos: dict[str, list[dict]], out_dir: Path) -> str:
 
 def _tabla_resumen(grupos: dict[str, list[dict]], out_dir: Path,
                    baseline: float = 270.0) -> str:
-    """Tabla de texto con costo medio re-evaluado e IC95."""
-    lineas = [f"# Tabla resumen — costo final re-evaluado (baseline={baseline:.0f} d)\n"]
-    lineas.append(f"{'Método':<14}{'Costo medio':>14}{'IC95 lo':>10}{'IC95 hi':>10}{'vs base %':>12}{'n seeds':>9}")
-    lineas.append("-" * 69)
+    """Tabla de texto con objetivo compuesto + TTS + atenciones por separado."""
+
+    def _get(r, key):
+        v = r.get("kpis_incumbente", {}).get(key, float("nan"))
+        return float(v) if v == v else float("nan")
+
+    # ── Tabla 1: objetivo compuesto re-evaluado ──────────────────────────
+    lineas = [f"# Tabla resumen — objetivo compuesto re-evaluado (baseline TTS={baseline:.0f} d)\n"]
+    lineas.append(f"{'Método':<16}{'Obj. medio':>12}{'IC95 lo':>10}{'IC95 hi':>10}{'TTS media':>11}{'Atenc. media':>14}{'n':>5}")
+    lineas.append("-" * 80)
 
     for m in sorted(grupos.keys()):
-        reevals = [r["reeval"]["media"] for r in grupos[m]
-                   if "reeval" in r and r["reeval"].get("media") == r["reeval"].get("media")]
-        lo_vals = [r["reeval"]["ic95_lo"] for r in grupos[m] if "reeval" in r]
-        hi_vals = [r["reeval"]["ic95_hi"] for r in grupos[m] if "reeval" in r]
-        if not reevals:
+        valid = [r for r in grupos[m]
+                 if "reeval" in r and r["reeval"].get("media") == r["reeval"].get("media")]
+        if not valid:
             continue
-        media = float(np.mean(reevals))
-        lo    = float(np.mean(lo_vals)) if lo_vals else float("nan")
-        hi    = float(np.mean(hi_vals)) if hi_vals else float("nan")
-        pct   = (baseline - media) / baseline * 100
-        label = ESTILO.get(m, {}).get("label", m)
-        lineas.append(f"{label:<14}{media:>14.2f}{lo:>10.2f}{hi:>10.2f}{pct:>12.1f}%{len(reevals):>9}")
+        obj_media = float(np.mean([r["reeval"]["media"]   for r in valid]))
+        obj_lo    = float(np.mean([r["reeval"]["ic95_lo"] for r in valid]))
+        obj_hi    = float(np.mean([r["reeval"]["ic95_hi"] for r in valid]))
+        tts_media = float(np.nanmean([_get(r, "tts_media") for r in valid]))
+        at_media  = float(np.nanmean([_get(r, "at_media")  for r in valid]))
+        label     = ESTILO.get(m, {}).get("label", m)
+        lineas.append(
+            f"{label:<16}{obj_media:>12.2f}{obj_lo:>10.2f}{obj_hi:>10.2f}"
+            f"{tts_media:>11.1f}{at_media:>14.1f}{len(valid):>5}"
+        )
+
+    lineas.append("")
+    # ── Tabla 2: TTS desglosado ──────────────────────────────────────────
+    lineas.append("# TTS total medio por método (días) — con IC95\n")
+    lineas.append(f"{'Método':<16}{'TTS media':>11}{'IC95 lo':>10}{'IC95 hi':>10}{'vs base':>9}{'n':>5}")
+    lineas.append("-" * 62)
+    for m in sorted(grupos.keys()):
+        valid = [r for r in grupos[m] if "kpis_incumbente" in r]
+        if not valid:
+            continue
+        tts_arr = np.array([_get(r, "tts_media") for r in valid])
+        tts_lo  = np.array([_get(r, "tts_ic95_lo") for r in valid])
+        tts_hi  = np.array([_get(r, "tts_ic95_hi") for r in valid])
+        media   = float(np.nanmean(tts_arr))
+        lo      = float(np.nanmean(tts_lo))
+        hi      = float(np.nanmean(tts_hi))
+        pct     = (baseline - media) / baseline * 100
+        label   = ESTILO.get(m, {}).get("label", m)
+        lineas.append(f"{label:<16}{media:>11.1f}{lo:>10.1f}{hi:>10.1f}{pct:>+9.1f}%{len(valid):>5}")
+
+    lineas.append("")
+    # ── Tabla 3: Atenciones desglosado ───────────────────────────────────
+    lineas.append("# Total atenciones medio por método — con IC95\n")
+    lineas.append(f"{'Método':<16}{'At. total':>11}{'IC95 lo':>10}{'IC95 hi':>10}{'At. 1ra':>10}{'At. post':>11}{'n':>5}")
+    lineas.append("-" * 74)
+    for m in sorted(grupos.keys()):
+        valid = [r for r in grupos[m] if "kpis_incumbente" in r]
+        if not valid:
+            continue
+        at_arr  = np.array([_get(r, "at_media")       for r in valid])
+        at_lo   = np.array([_get(r, "at_ic95_lo")     for r in valid])
+        at_hi   = np.array([_get(r, "at_ic95_hi")     for r in valid])
+        at_f    = np.array([_get(r, "at_first_media")  for r in valid])
+        at_p    = np.array([_get(r, "at_post_media")   for r in valid])
+        label   = ESTILO.get(m, {}).get("label", m)
+        lineas.append(
+            f"{label:<16}{np.nanmean(at_arr):>11.1f}{np.nanmean(at_lo):>10.1f}"
+            f"{np.nanmean(at_hi):>10.1f}{np.nanmean(at_f):>10.1f}{np.nanmean(at_p):>11.1f}{len(valid):>5}"
+        )
 
     txt = "\n".join(lineas)
     (out_dir / "tabla_resumen.txt").write_text(txt)
