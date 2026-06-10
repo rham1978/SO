@@ -714,8 +714,8 @@ def main():
                    help="Macro-réplicas por módulo (default 15).")
     p.add_argument("--n_trials", type=int, default=150,
                    help="Presupuesto de evaluaciones del simulador (default 150).")
-    p.add_argument("--r_final",  type=int, default=50,
-                   help="Réplicas para re-evaluar incumbente (default 50).")
+    p.add_argument("--r_final",  type=int, default=30,
+                   help="Réplicas para re-evaluar incumbente (default 30).")
     p.add_argument("--n_cores",  type=int, default=9,
                    help="Procesos paralelos (default 9 = cores físicos - 1).")
     p.add_argument("--baseline", type=float, default=270.0,
