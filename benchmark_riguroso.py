@@ -708,7 +708,7 @@ def main():
     p = argparse.ArgumentParser(
         description="Benchmark riguroso SO-main + files (IFORS julio 2026).")
     p.add_argument("--modulos", nargs="+",
-                   default=["M4", "M8", "M10", "M13", "RS"],
+                   default=["M4", "M7", "M8", "M10", "M11", "M13", "RS"],
                    help="Módulos a correr (M4 M7 M8 M9 M10 M11 M12 M13 M14 RS).")
     p.add_argument("--n_seeds",  type=int, default=15,
                    help="Macro-réplicas por módulo (default 15).")
