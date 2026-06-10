@@ -712,8 +712,8 @@ def main():
     p.add_argument("--modulos", nargs="+",
                    default=["M4", "M7", "M8", "M10", "M11", "M13", "RS"],
                    help="Módulos a correr (M4 M7 M8 M9 M10 M11 M12 M13 M14 RS).")
-    p.add_argument("--n_seeds",  type=int, default=15,
-                   help="Macro-réplicas por módulo (default 15).")
+    p.add_argument("--n_seeds",  type=int, default=10,
+                   help="Macro-réplicas por módulo (default 10).")
     p.add_argument("--n_trials", type=int, default=150,
                    help="Presupuesto de evaluaciones del simulador (default 150).")
     p.add_argument("--r_final",  type=int, default=30,
