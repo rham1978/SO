@@ -989,6 +989,9 @@ class ClinicModelAdjusted(ClinicModelBase):
             tr['special_dx_route'] = bool(self.rng.random() < self.cfg.special_dx_share)
 
         if tr and tr.get('special_dx_route', False):
+            if patient.pid not in self.counted_in_cum_wait:
+                self.counted_in_cum_wait.add(patient.pid)
+                self.cum_wait_total += 1
             self._set_patient_state(patient.pid, 'special_prefirst_route')
             self.env.process(self.special_prefirst_route(patient))
             return
@@ -1202,10 +1205,9 @@ class ClinicModelAdjusted(ClinicModelBase):
 
             while self.slot_times and self.slot_times[0] <= self.env.now:
                 self.slot_times.popleft()
-            if chosen_idx >= len(self.slot_times):
+            if chosen_idx >= len(self.slot_times) or self.slot_times[chosen_idx] != slot_t:
                 continue
 
-            slot_t = self.slot_times[chosen_idx]
             del self.slot_times[chosen_idx]
             self.remove_patient_first(patient)
             self.week_caps_used[wk]['long' if is_long else 'short'] += 1
@@ -1793,9 +1795,8 @@ class ClinicModelAdjusted(ClinicModelBase):
 
                 while self.post_control_slots and self.post_control_slots[0] <= self.env.now:
                     self.post_control_slots.popleft()
-                if chosen_idx >= len(self.post_control_slots):
+                if chosen_idx >= len(self.post_control_slots) or self.post_control_slots[chosen_idx] != slot_t:
                     continue
-                slot_t = self.post_control_slots[chosen_idx]
                 del self.post_control_slots[chosen_idx]
                 self._remove_need(need, self.post_wait_high_ugd,
                                   self.post_wait_mid_ugd, self.post_wait_low_ugd)
@@ -1840,18 +1841,19 @@ class ClinicModelAdjusted(ClinicModelBase):
                                                pid=need.patient.pid)
                 earliest_ok = max(self.env.now, need.not_before)
                 chosen_idx = None
+                slot_t = None
                 for i, s in enumerate(self.post_control_slots):
                     if s >= earliest_ok:
                         chosen_idx = i
+                        slot_t = s
                         break
                 if chosen_idx is None:
                     yield self.env.timeout(10)
                     continue
                 while self.post_control_slots and self.post_control_slots[0] <= self.env.now:
                     self.post_control_slots.popleft()
-                if chosen_idx >= len(self.post_control_slots):
+                if chosen_idx >= len(self.post_control_slots) or self.post_control_slots[chosen_idx] != slot_t:
                     continue
-                slot_t = self.post_control_slots[chosen_idx]
                 del self.post_control_slots[chosen_idx]
                 self._remove_need(need, self.post_wait_high_matrona,
                                   self.post_wait_mid_matrona, self.post_wait_low_matrona)
@@ -2298,9 +2300,10 @@ class ClinicModelAdjusted(ClinicModelBase):
         for name, res in [('reconv', self.reconv), ('agent', self.agent),
                            ('matrona', self.matrona), ('anesthesist', self.anesthesist),
                            ('becado', self.becado)]:
-            if len(res.users) > 0 and len(res.queue) > 0:
-                problems[f'{name}_queue_backlog'] = len(res.queue)
-        if len(self.active_non_surgery) > 3:
+            if len(res.users) == 0 and len(res.queue) > 0:
+                problems[f'{name}_idle_with_queue'] = len(res.queue)
+        max_concurrent = self.cfg.agent_capacity + self.cfg.matrona_capacity + self.cfg.reconv_capacity + 2
+        if len(self.active_non_surgery) > max_concurrent + 2:
             problems['active_non_surgery_high'] = sorted(self.active_non_surgery)
         if problems:
             self.daily_transition_errors.append(
