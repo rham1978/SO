@@ -63,14 +63,14 @@ BASELINE_COSTO = 279.78   # tts_full_days_mean con CFG original
 # Paleta y etiquetas por módulo
 # ─────────────────────────────────────────────────────────────────
 MODULO_META = {
-    "M4":   {"label": "M4 SMAC-BB (GP)",    "color": "#1f77b4", "ls": "-",  "marker": "o"},
-    "M7":   {"label": "M7 SMAC-SK (EI)",    "color": "#ff7f0e", "ls": "-",  "marker": "s"},
-    "M8":   {"label": "M8 SK-Adapt.",       "color": "#2ca02c", "ls": "--", "marker": "D"},
+    "M4":   {"label": "M1 SMAC-BB (GP)",    "color": "#1f77b4", "ls": "-",  "marker": "o"},
+    "M7":   {"label": "M2 SMAC-SK (EI)",    "color": "#ff7f0e", "ls": "-",  "marker": "s"},
+    "M8":   {"label": "M3 SK-Adapt.",       "color": "#2ca02c", "ls": "--", "marker": "D"},
     "M9":   {"label": "M9 SK-REVI",         "color": "#d62728", "ls": "--", "marker": "v"},
-    "M10":  {"label": "M10 SK-KGCP",        "color": "#9467bd", "ls": "-.", "marker": "^"},
-    "M11":  {"label": "M11 ASTRO-DF",       "color": "#8c564b", "ls": "-.", "marker": "p"},
+    "M10":  {"label": "M4 SK-KGCP",         "color": "#9467bd", "ls": "-.", "marker": "^"},
+    "M11":  {"label": "M5 ASTRO-DF",        "color": "#8c564b", "ls": "-.", "marker": "p"},
     "M12":  {"label": "M12 STRONG",         "color": "#e377c2", "ls": ":",  "marker": "h"},
-    "M13":  {"label": "M13 SPSA",           "color": "#7f7f7f", "ls": ":",  "marker": "x"},
+    "M13":  {"label": "M6 SPSA",            "color": "#7f7f7f", "ls": ":",  "marker": "x"},
     "M14":  {"label": "M14 ALOE",           "color": "#bcbd22", "ls": (0, (3,1,1,1)), "marker": "*"},
 }
 
