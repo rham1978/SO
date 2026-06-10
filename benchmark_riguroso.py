@@ -172,6 +172,7 @@ def _random_search_runner(n_trials: int, seed: int, n_reps: int = 3,
         cfg.agent_capacity               = int(vals.get("num_agentes_ugd", 1))
         cfg.not_contactable_p            = float(vals.get("pct_no_contactabilidad", 0.30))
         cfg.blocked_pct_post_control     = float(vals.get("pct_bloqueo_post_control", 0.34))
+        cfg.benchmark_mode               = True
 
         # Evaluar con n_reps réplicas (CRN por seed) — timeout anti-deadlock DES
         resultados_rep = []
@@ -300,6 +301,7 @@ def _re_evaluar_incumbente(incumbente_cfg: dict, r_final: int,
         cfg.agent_capacity               = int(round(incumbente_cfg.get("num_agentes_ugd", 1)))
         cfg.not_contactable_p            = float(incumbente_cfg.get("pct_no_contactabilidad", 0.30))
         cfg.blocked_pct_post_control     = float(incumbente_cfg.get("pct_bloqueo_post_control", 0.34))
+        cfg.benchmark_mode               = True
 
         if pesos_kpi:
             vals = []

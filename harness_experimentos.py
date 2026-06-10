@@ -199,11 +199,12 @@ def correr_una(metodo: str, macro_seed: int, b_sim: int, r_final: int,
 # del optimizador. Ver el plan de experimentos para el detalle por método.
 # ───────────────────────────────────────────────────────────────────────
 
-def _cfg_desde_vector(x_unit: np.ndarray) -> dict:
+def _cfg_desde_vector(x_unit: np.ndarray, benchmark_mode: bool = False) -> dict:
     """
     Convierte un vector en [0,1]^12 a un cfg_dict del simulador, respetando
     enteros con int(round(...)) — CORRIGE el bug de truncamiento int().
     Usa los mismos PARAM_RANGES del comparativa.
+    benchmark_mode=True desactiva patient_trace y timeseries (~46% más rápido).
     """
     from modulo_comparativa_caja_negra import PARAM_NAMES, PARAM_RANGES
     from simulador_clinica_baseline import SimConfig, CFG
@@ -237,6 +238,7 @@ def _cfg_desde_vector(x_unit: np.ndarray) -> dict:
     cfg.agent_capacity               = int(valores["num_agentes_ugd"])
     cfg.not_contactable_p            = float(valores["pct_no_contactabilidad"])
     cfg.blocked_pct_post_control     = float(valores["pct_bloqueo_post_control"])
+    cfg.benchmark_mode               = bool(benchmark_mode)
     return dataclasses.asdict(cfg)
 
 

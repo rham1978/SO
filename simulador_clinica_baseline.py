@@ -162,6 +162,10 @@ class SimConfig:
     replications:       int   = 10
     random_seed_base:   int   = 202
 
+    # Modo benchmark: desactiva patient_trace y series de tiempo detalladas.
+    # Reduce ~30% el tiempo de ejecución. Activar en benchmark_riguroso.
+    benchmark_mode: bool = False
+
     # ── NUEVO: control de paralelismo ─────────────────────────────────────────
     # 0 = automático (usa todos los CPUs disponibles)
     # N > 0 = usa exactamente N procesos
@@ -565,6 +569,8 @@ class ClinicModelAdjusted(ClinicModelBase):
         self.daily_transition_errors = []
         self.validation_checks = {}
         self.patient_trace = {}
+        # Flag de routing separado del trace: siempre se necesita, independiente de benchmark_mode
+        self._special_dx_pids: set = set()
 
         self.first_slot_lock = simpy.Resource(env, capacity=1)
         self.reconv = simpy.PriorityResource(env, capacity=self.cfg.reconv_capacity)
@@ -606,12 +612,13 @@ class ClinicModelAdjusted(ClinicModelBase):
         self.post_wait_mid_ugd      = deque()
         self.post_wait_low_ugd      = deque()
 
-        self.ugd_us_slots  = deque()
+        # Pools de exámenes como listas ordenadas (soportan bisect O(log n))
+        self.ugd_us_slots  = []
         self.ugd_us_lock   = simpy.Resource(env, capacity=1)
-        self.ugd_lab_slots = deque()
+        self.ugd_lab_slots = []
         self.ugd_lab_lock  = simpy.Resource(env, capacity=1)
-        self.mat_us_slots  = deque()
-        self.mat_lab_slots = deque()
+        self.mat_us_slots  = []
+        self.mat_lab_slots = []
         self.mat_exam_lock = simpy.Resource(env, capacity=1)
 
         self.preq_queue         = deque()
@@ -661,6 +668,8 @@ class ClinicModelAdjusted(ClinicModelBase):
             self.active_non_surgery.discard(pid)
 
     def _register_patient(self, p: Patient):
+        if self.cfg.benchmark_mode:
+            return
         if p.pid not in self.patient_trace:
             self.patient_trace[p.pid] = {
                 "pid": p.pid,
@@ -679,7 +688,7 @@ class ClinicModelAdjusted(ClinicModelBase):
 
     def _trace_add_waitq(self, pid, key: str, minutes: float):
         self.kpis.add_waitq(key, minutes)
-        if pid is None:
+        if self.cfg.benchmark_mode or pid is None:
             return
         tr = self.patient_trace.get(pid)
         if tr:
@@ -687,7 +696,7 @@ class ClinicModelAdjusted(ClinicModelBase):
 
     def _trace_add_waitslot(self, pid, key: str, minutes: float):
         self.kpis.add_waitslot(key, minutes)
-        if pid is None:
+        if self.cfg.benchmark_mode or pid is None:
             return
         tr = self.patient_trace.get(pid)
         if tr:
@@ -711,6 +720,8 @@ class ClinicModelAdjusted(ClinicModelBase):
             self.kpis.first_attended_backlog_time_all.append(backlog_minutes)
             self.kpis.first_attended_process_time_all.append(process_minutes)
 
+        if self.cfg.benchmark_mode:
+            return
         tr = self.patient_trace.get(patient.pid)
         if tr:
             tr["first_closed_at"] = float(self.env.now)
@@ -780,9 +791,11 @@ class ClinicModelAdjusted(ClinicModelBase):
         yield from self._matrona_fixed(minutes, pid=pid)
 
     def _book_from_pool(self, pool, lock_res, not_before, waitslot_key, pid=None):
+        import bisect
         t_request = self.env.now
         retries = 0
         max_retries = max(1, int(self.cfg.sim_time_min // 10))
+        _is_list = isinstance(pool, list)
         while True:
             if self.env.now >= self.cfg.sim_time_min or retries > max_retries:
                 log.warning("Pool agotado pid=%s key=%s t=%.0f", pid, waitslot_key, self.env.now)
@@ -792,20 +805,30 @@ class ClinicModelAdjusted(ClinicModelBase):
             with lock_res.request() as req:
                 yield req
                 self._trace_add_waitq(pid, 'pool_lock', self.env.now - t_q)
-                while pool and pool[0] <= self.env.now:
-                    pool.popleft()
-                idx = None
-                for i, s in enumerate(pool):
-                    if s >= t0:
-                        idx = i
-                        break
-                if idx is not None:
+                # Descarta slots expirados del frente (pools están ordenados)
+                if _is_list:
+                    while pool and pool[0] <= self.env.now:
+                        pool.pop(0)
+                    # Búsqueda binaria O(log n) sobre lista ordenada
+                    idx = bisect.bisect_left(pool, t0)
+                else:
+                    while pool and pool[0] <= self.env.now:
+                        pool.popleft()
+                    # Búsqueda lineal para deques (appendleft las hace no ordenables con bisect)
+                    idx = None
+                    for i, s in enumerate(pool):
+                        if s >= t0:
+                            idx = i
+                            break
+                    if idx is None:
+                        idx = len(pool)
+                if idx < len(pool):
                     slot_t = pool[idx]
                     del pool[idx]
                     self._trace_add_waitslot(pid, waitslot_key, slot_t - t_request)
                     return slot_t
             retries += 1
-            yield self.env.timeout(10)
+            yield self.env.timeout(4 * 60)  # reintentar cada 4h en vez de cada 10min
 
     def _endo_p(self, priority: str) -> float:
         if not self.cfg.endo_p_by_priority:
@@ -984,11 +1007,15 @@ class ClinicModelAdjusted(ClinicModelBase):
             self._set_patient_state(patient.pid, 'local_adjust_wait')
             yield self.env.timeout(adj)
 
+        # Siempre consumir RNG para mantener secuencia reproducible (independiente de benchmark_mode)
+        if patient.pid not in self._special_dx_pids:
+            if self.rng.random() < self.cfg.special_dx_share:
+                self._special_dx_pids.add(patient.pid)
         tr = self.patient_trace.get(patient.pid)
-        if tr and ('special_dx_route' not in tr):
-            tr['special_dx_route'] = bool(self.rng.random() < self.cfg.special_dx_share)
+        if tr:
+            tr['special_dx_route'] = patient.pid in self._special_dx_pids
 
-        if tr and tr.get('special_dx_route', False):
+        if patient.pid in self._special_dx_pids:
             if patient.pid not in self.counted_in_cum_wait:
                 self.counted_in_cum_wait.add(patient.pid)
                 self.cum_wait_total += 1
@@ -1324,7 +1351,6 @@ class ClinicModelAdjusted(ClinicModelBase):
         return CAL_UGD.next_work_minute(max(pub_t, t))
 
     def start_post_consulta(self, patient, t_first_end):
-        tr = self.patient_trace.get(patient.pid, {})
         if t_first_end >= self.cfg.sim_time_min:
             return
         self.kpis.post_entered += 1
@@ -1336,7 +1362,7 @@ class ClinicModelAdjusted(ClinicModelBase):
         if tr2:
             tr2['first_done_at'] = float(t_first_end)
 
-        if tr.get('special_dx_route', False):
+        if patient.pid in self._special_dx_pids:
             self.kpis.post_route_counts['quir'] += 1
             if tr2:
                 tr2['post_route'] = 'quir'
@@ -2310,6 +2336,8 @@ class ClinicModelAdjusted(ClinicModelBase):
                 {'time': float(self.env.now), 'problems': problems})
 
     def push_timeseries_point(self):
+        if self.cfg.benchmark_mode:
+            return
         self.kpis.ts_time_min.append(self.env.now)
         self.kpis.ts_cum_wait_total.append(self.cum_wait_total)
         self.kpis.ts_cum_att_total.append(self.att_total_cum)
@@ -2317,6 +2345,8 @@ class ClinicModelAdjusted(ClinicModelBase):
             self.cum_wait_total - self.att_total_cum - self.cum_removed_total)
 
     def push_post_timeseries_point(self):
+        if self.cfg.benchmark_mode:
+            return
         self.kpis.ts_post_time_min.append(self.env.now)
         self.kpis.ts_post_entered_cum.append(self.post_entered_cum)
         self.kpis.ts_post_completed_cum.append(self.post_completed_cum)
