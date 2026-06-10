@@ -828,7 +828,7 @@ class ClinicModelAdjusted(ClinicModelBase):
                     self._trace_add_waitslot(pid, waitslot_key, slot_t - t_request)
                     return slot_t
             retries += 1
-            yield self.env.timeout(4 * 60)  # reintentar cada 4h en vez de cada 10min
+            yield self.env.timeout(10)  # reintentar cada 10min
 
     def _endo_p(self, priority: str) -> float:
         if not self.cfg.endo_p_by_priority:
