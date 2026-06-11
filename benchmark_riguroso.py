@@ -726,7 +726,8 @@ def _tabla_resumen(grupos: dict[str, list[dict]], out_dir: Path,
 def ejecutar(modulos: list[str], n_seeds: int, n_trials: int,
              r_final: int, n_cores: int, out_dir: Path,
              baseline: float = 270.0, resume: bool = False,
-             pesos_kpi: dict = None) -> None:
+             pesos_kpi: dict = None,
+             max_seed_horas: float = 24.0) -> None:
 
     out_dir.mkdir(parents=True, exist_ok=True)
     tareas = [(m, s) for m in modulos for s in range(n_seeds)]
@@ -760,13 +761,21 @@ def ejecutar(modulos: list[str], n_seeds: int, n_trials: int,
         for i, fut in enumerate(concurrent.futures.as_completed(futuros), 1):
             m, s = futuros[fut]
             try:
-                r = fut.result()
+                r = fut.result(timeout=max_seed_horas * 3600)
                 resultados.append(r)
                 reeval_med = r.get("reeval", {}).get("media", float("nan"))
                 log.info("[%d/%d] %-10s seed=%2d  costo_opt=%.2f  reeval=%.2f  t=%.0fs",
                          i, len(tareas), m, s,
                          r.get("costo_opt", float("nan")),
                          reeval_med, r.get("tiempo_seg", 0))
+            except concurrent.futures.TimeoutError:
+                log.error("[%d/%d] %-10s seed=%2d  TIMEOUT (>%.0fh) — descartada",
+                          i, len(tareas), m, s, max_seed_horas)
+                resultados.append({
+                    "modulo": m, "macro_seed": s,
+                    "error": f"TIMEOUT >{max_seed_horas:.0f}h",
+                    "tiempo_seg": max_seed_horas * 3600,
+                })
             except Exception as exc:
                 log.error("[%d/%d] %s seed=%d FALLÓ: %s", i, len(tareas), m, s, exc)
 
@@ -821,6 +830,9 @@ def main():
     p.add_argument("--lambda_obj", type=float, default=None,
                    help="Valor λ para objetivo compuesto f=tts_full - λ·total_atenciones "
                         "(obtenido con calibrar_lambda.py). Si se omite usa sólo TTS.")
+    p.add_argument("--max_seed_horas", type=float, default=24.0,
+                   help="Timeout máximo por seed en horas (default 24h). "
+                        "Seeds que superen este límite se descartan y el benchmark continúa.")
     args = p.parse_args()
 
     logging.basicConfig(
@@ -836,15 +848,16 @@ def main():
                  args.lambda_obj)
 
     ejecutar(
-        modulos   = args.modulos,
-        n_seeds   = args.n_seeds,
-        n_trials  = args.n_trials,
-        r_final   = args.r_final,
-        n_cores   = args.n_cores,
-        out_dir   = Path(args.out),
-        baseline  = args.baseline,
-        resume    = args.resume,
-        pesos_kpi = pesos_kpi,
+        modulos        = args.modulos,
+        n_seeds        = args.n_seeds,
+        n_trials       = args.n_trials,
+        r_final        = args.r_final,
+        n_cores        = args.n_cores,
+        out_dir        = Path(args.out),
+        baseline       = args.baseline,
+        resume         = args.resume,
+        pesos_kpi      = pesos_kpi,
+        max_seed_horas = args.max_seed_horas,
     )
 
 
