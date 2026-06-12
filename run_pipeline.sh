@@ -14,11 +14,6 @@ echo "======================================================="
 echo "PIPELINE IFORS — $(date)"
 echo "======================================================="
 
-# ── Paso 0: actualizar código ────────────────────────────
-echo ""
-echo ">>> Paso 0: git pull"
-git pull origin claude/wonderful-hopper-Nsrsu
-
 # ── Paso 1: caracterización heterocedasticidad (~6h) ─────
 echo ""
 echo ">>> Paso 1: Caracterización heterocedasticidad — $(date)"
