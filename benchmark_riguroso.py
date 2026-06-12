@@ -239,7 +239,7 @@ def _params_para_runner(modulo: str, n_trials: int, seed: int) -> dict:
 
     elif modulo == "M11":  # ASTRO-DF: ~30 reps/iter (fijado en el runner)
         max_iter = max(1, n_trials // 30)
-        return {"max_iter": max_iter, "n_workers": 0, "seed": seed}
+        return {"max_iter": max_iter, "n_workers": 1, "seed": seed}  # n_workers=1 evita sobresuscripción en benchmark paralelo
 
     elif modulo == "M12":  # STRONG: 100 eval solo para arrancar
         max_iter = max(1, n_trials // 100)
