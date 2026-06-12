@@ -34,7 +34,7 @@ echo "    Paso 2 completado — $(date)"
 LAMBDA=$(python3 -c "
 import json
 d = json.load(open('$OUT_BASE/lambda/lambdas.json'))
-print(f\"{d['lambda_med']:.4f}\")
+print(f\"{d['lambdas']['lambda_med']:.4f}\")
 ")
 echo "    Lambda calibrado: $LAMBDA"
 
