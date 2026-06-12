@@ -5,7 +5,7 @@
 # =========================================================
 set -e
 
-BASE="/home/raul/Documents/Codigos Sim"
+BASE="$(cd "$(dirname "$0")" && pwd)"
 OUT_BASE="$BASE/IFORS"
 
 cd "$BASE"
