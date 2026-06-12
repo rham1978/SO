@@ -666,6 +666,9 @@ def _worker_run_once(args: tuple) -> float:
         from simulador_clinica_baseline import run_once, SimConfig
         cfg = SimConfig(**cfg_dict)
         res = run_once(seed_offset=seed_offset, cfg=cfg)
+        if objetivo == "compuesto" and pesos_kpi:
+            return sum(float(pesos_kpi.get(k, 0.0)) * float(res.get(k, 0.0))
+                       for k in pesos_kpi)
         return float(res.get(objetivo, 1e9))
     except Exception as e:
         import logging
@@ -2352,6 +2355,7 @@ def _astro_eval_point(
     seed_off:  int,
     objetivo:  str,
     n_workers: int,
+    pesos_kpi: dict = None,
 ) -> tuple:
     """
     Evalúa F̄(x, n) y σ̂F(x, n): promedio y desv. estándar de n réplicas.
@@ -2394,7 +2398,7 @@ def _astro_eval_point(
     cfg_dict = dataclasses.asdict(cfg_obj)
 
     tasks = [
-        (seed_base + seed_off + r, cfg_dict, objetivo, {})
+        (seed_base + seed_off + r, cfg_dict, objetivo, pesos_kpi or {})
         for r in range(n)
     ]
 
@@ -2446,6 +2450,7 @@ def _astro_adaptive_n(
     lambda_k:  int,
     n_min:     int = 2,
     n_max:     int = 30,
+    pesos_kpi: dict = None,
 ) -> tuple:
     """
     Muestreo adaptativo (eq. 4.1 del paper):
@@ -2460,7 +2465,7 @@ def _astro_adaptive_n(
 
     # Evaluar lote inicial
     _, _, vals = _astro_eval_point(x_norm, n_total, seed_base, seed_off,
-                                   objetivo, n_workers)
+                                   objetivo, n_workers, pesos_kpi)
     valores.extend(vals)
 
     # Incrementar hasta cumplir criterio o n_max
@@ -2471,7 +2476,7 @@ def _astro_adaptive_n(
             break
         # Añadir 1 réplica más
         _, _, v1 = _astro_eval_point(x_norm, 1, seed_base,
-                                      seed_off + len(valores), objetivo, 1)
+                                      seed_off + len(valores), objetivo, 1, pesos_kpi)
         valores.extend(v1)
 
     media = float(np.mean(valores))
@@ -2559,6 +2564,7 @@ def optimizar_astro_df(
     seed:      int   = 42,
     seed_base: int   = 202,
     objetivo:  str   = "tts_full_days_mean",
+    pesos_kpi: dict  = None,
     n_workers: int   = 0,
     max_iter:  int   = 200,
     # Parámetros del paper (Algoritmos 1 y 2)
@@ -2614,7 +2620,7 @@ def optimizar_astro_df(
     lambda_k  = 3
     fk, sk, nk, _ = _astro_adaptive_n(
         xk, delta, 0, seed_base, seed_off, objetivo, n_workers,
-        kappa_oas, lambda_k, n_min=3)
+        kappa_oas, lambda_k, n_min=3, pesos_kpi=pesos_kpi)
     seed_off += nk
     f_inc, x_inc = fk, xk.copy()
     log.info("x0 evaluado: %s=%.3f  n=%d  Δ=%.4f", objetivo, fk, nk, delta)
@@ -2639,7 +2645,7 @@ def optimizar_astro_df(
         # que el numerador (ambos estimados con Δk actual).
         fk_fresh, _, nk_fresh, _ = _astro_adaptive_n(
             xk, delta, k, seed_base, seed_off,
-            objetivo, n_workers, kappa_oas, lambda_k, n_min=3)
+            objetivo, n_workers, kappa_oas, lambda_k, n_min=3, pesos_kpi=pesos_kpi)
         seed_off += nk_fresh
         # Actualizar fk con estimación fresca (promedio ponderado para estabilidad)
         fk = 0.5 * fk + 0.5 * fk_fresh   # suavizado — reduce varianza de ρ̂k
@@ -2660,7 +2666,7 @@ def optimizar_astro_df(
             for i, yi in enumerate(Y):
                 fi, _, ni_y, _ = _astro_adaptive_n(
                     yi, delta_tilde, k, seed_base, seed_off + i * 5,
-                    objetivo, n_workers, kappa_ias, lambda_k, n_min=2)
+                    objetivo, n_workers, kappa_ias, lambda_k, n_min=2, pesos_kpi=pesos_kpi)
                 fY[i] = fi
             seed_off += len(Y) * 5
 
@@ -2701,7 +2707,7 @@ def optimizar_astro_df(
         # Muestreo adaptativo en el candidato (eq. 4.1 del paper)
         f_cand, s_cand, n_cand, _ = _astro_adaptive_n(
             x_cand, delta_k, k, seed_base, seed_off,
-            objetivo, n_workers, kappa_oas, lambda_k, n_min=3)
+            objetivo, n_workers, kappa_oas, lambda_k, n_min=3, pesos_kpi=pesos_kpi)
         seed_off += n_cand
 
         # ── Algoritmo 1: Update (Step 5) ──────────────────────

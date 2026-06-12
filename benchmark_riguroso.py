@@ -80,16 +80,17 @@ log = logging.getLogger("benchmark_riguroso")
 
 # Colores/estilos por módulo (igual que en comparativa)
 ESTILO = {
-    "M4":  {"label": "SMAC-GP+EI",    "color": "#1f77b4", "ls": "-",  "marker": "o"},
-    "M7":  {"label": "SMAC+SK (EI)",  "color": "#ff7f0e", "ls": "-",  "marker": "s"},
-    "M8":  {"label": "SK Adaptativo", "color": "#2ca02c", "ls": "--", "marker": "D"},
-    "M9":  {"label": "SK-REVI",       "color": "#d62728", "ls": "--", "marker": "v"},
-    "M10": {"label": "SK-KGCP",       "color": "#9467bd", "ls": "-.", "marker": "^"},
-    "M11": {"label": "ASTRO-DF",      "color": "#8c564b", "ls": "-.", "marker": "p"},
-    "M12": {"label": "STRONG",        "color": "#e377c2", "ls": ":",  "marker": "h"},
-    "M13": {"label": "SPSA",          "color": "#7f7f7f", "ls": ":",  "marker": "x"},
-    "M14": {"label": "ALOE",          "color": "#bcbd22", "ls": (0, (3,1,1,1)), "marker": "*"},
-    "RS":  {"label": "Random Search", "color": "#17becf", "ls": "--", "marker": "P"},
+    "M4":  {"label": "M1 SMAC-GP+EI",    "color": "#1f77b4", "ls": "-",  "marker": "o"},
+    "M7":  {"label": "M2 SMAC+SK (EI)",  "color": "#ff7f0e", "ls": "-",  "marker": "s"},
+    "M8":  {"label": "M3 SK Adaptativo", "color": "#2ca02c", "ls": "--", "marker": "D"},
+    "M9":  {"label": "SK-REVI",          "color": "#d62728", "ls": "--", "marker": "v"},
+    "M10": {"label": "M4 SK-KGCP",       "color": "#9467bd", "ls": "-.", "marker": "^"},
+    "M11": {"label": "M5 ASTRO-DF",      "color": "#8c564b", "ls": "-.", "marker": "p"},
+    "M12": {"label": "STRONG",           "color": "#e377c2", "ls": ":",  "marker": "h"},
+    "M13": {"label": "M6 SPSA",          "color": "#7f7f7f", "ls": ":",  "marker": "x"},
+    "M14": {"label": "ALOE",             "color": "#bcbd22", "ls": (0, (3,1,1,1)), "marker": "*"},
+    "RS":  {"label": "RS",               "color": "#17becf", "ls": "--", "marker": "P"},
+    "SA":  {"label": "M8 SA (A&A99)",    "color": "#e377c2", "ls": "--", "marker": "h"},
 }
 
 # Parámetros del runner por familia
@@ -99,17 +100,33 @@ ESTILO = {
 FAMILIA_SMAC = {"M4", "M7", "M8", "M9", "M10"}
 FAMILIA_ITER = {"M11", "M12", "M13", "M14"}
 
+
+def _worker_run_once(args):
+    """Module-level worker for ProcessPoolExecutor (must be picklable)."""
+    seed_offset, cfg_dict, objetivo, pesos_kpi = args
+    from simulador_clinica_baseline import run_once, SimConfig
+    import dataclasses
+    cfg = SimConfig(**{k: v for k, v in cfg_dict.items()
+                       if k in SimConfig.__dataclass_fields__})
+    res = run_once(seed_offset=seed_offset, cfg=cfg)
+    if objetivo == "compuesto" and pesos_kpi:
+        return sum(float(pesos_kpi.get(k, 0.0)) * float(res.get(k, 0.0))
+                   for k in pesos_kpi)
+    return float(res.get(objetivo, 1e9))
+
+
 # ───────────────────────────────────────────────────────────────────────
 # Random Search (baseline) — implementado aquí, no depende de main
 # ───────────────────────────────────────────────────────────────────────
 
-def _random_search_runner(n_trials: int, seed: int, n_reps: int = 3) -> dict:
+def _random_search_runner(n_trials: int, seed: int, n_reps: int = 3,
+                           pesos_kpi: dict = None) -> dict:
     """
     Evalúa n_trials puntos aleatorios en el espacio de parámetros.
     Usa la infraestructura de main (PARAM_NAMES, PARAM_RANGES, run_once, SimConfig).
     """
     import modulo_comparativa_caja_negra as comp
-    from simulador_clinica_baseline import run_once, SimConfig, CFG
+    from simulador_clinica_baseline import SimConfig, CFG
     import dataclasses
 
     PARAM_NAMES = comp.PARAM_NAMES
@@ -119,6 +136,9 @@ def _random_search_runner(n_trials: int, seed: int, n_reps: int = 3) -> dict:
         "cupos_ecografia_matrona", "cupos_ecografia_ugd", "dias_publicacion",
         "num_matronas", "num_agentes_ugd",
     }
+
+    objetivo_kpi = "compuesto" if pesos_kpi else "tts_full_days_mean"
+    kpi_dict = pesos_kpi or {}
 
     rng = np.random.RandomState(seed)
     historia = []
@@ -153,6 +173,7 @@ def _random_search_runner(n_trials: int, seed: int, n_reps: int = 3) -> dict:
         cfg.agent_capacity               = int(vals.get("num_agentes_ugd", 1))
         cfg.not_contactable_p            = float(vals.get("pct_no_contactabilidad", 0.30))
         cfg.blocked_pct_post_control     = float(vals.get("pct_bloqueo_post_control", 0.34))
+        cfg.benchmark_mode               = True
 
         # Evaluar con n_reps réplicas (CRN por seed) — timeout anti-deadlock DES
         resultados_rep = []
@@ -162,7 +183,7 @@ def _random_search_runner(n_trials: int, seed: int, n_reps: int = 3) -> dict:
                     _fut = _ex.submit(
                         _worker_run_once,
                         (seed_off + trial * n_reps + r,
-                         dataclasses.asdict(cfg), "tts_full_days_mean", {})
+                         dataclasses.asdict(cfg), objetivo_kpi, kpi_dict)
                     )
                     res_val = _fut.result(timeout=600.0)
                 resultados_rep.append(float(res_val))
@@ -234,6 +255,10 @@ def _params_para_runner(modulo: str, n_trials: int, seed: int) -> dict:
         max_iter = max(1, n_trials // 108)
         return {"max_iter": max_iter, "r": r, "n_workers": 0, "seed": seed}
 
+    elif modulo == "SA":   # Alrefaei & Andradóttir: evalúa x + z = 2*L por iter
+        L = 3
+        return {"n_trials": n_trials, "L": L, "seed": seed}
+
     return {}
 
 
@@ -252,25 +277,35 @@ def _evals_por_iter(modulo: str, params: dict) -> int:
         return 2 * _d * 2 + 2 * params.get("r", 5)  # grad + armijo
     elif modulo == "RS":
         return params.get("n_reps", 3)
+    elif modulo == "SA":
+        return 2 * params.get("L", 3)
     return 1
 
 
 def _re_evaluar_incumbente(incumbente_cfg: dict, r_final: int,
-                            seed_offset_base: int = 500_000) -> dict:
+                            seed_offset_base: int = 500_000,
+                            pesos_kpi: dict = None) -> tuple:
     """
     Re-evalúa la configuración incumbente con r_final réplicas frescas.
     Usa offsets en un bloque separado para no solapar con la optimización.
+
+    Retorna (reeval_dict, kpis_dict) donde:
+      reeval_dict  — estadísticos del objetivo optimizado (compuesto o TTS)
+      kpis_dict    — estadísticos individuales: tts_full_days_mean y total_atenciones
     """
     from simulador_clinica_baseline import run_once, SimConfig, CFG
     import dataclasses
 
+    nan_reeval = {"media": float("nan"), "sd": float("nan"),
+                  "ic95_lo": float("nan"), "ic95_hi": float("nan"), "r_final": 0}
+    nan_kpis   = {"tts_media": float("nan"), "tts_sd": float("nan"),
+                  "tts_ic95_lo": float("nan"), "tts_ic95_hi": float("nan"),
+                  "at_media": float("nan"),  "at_sd": float("nan"),
+                  "at_ic95_lo": float("nan"), "at_ic95_hi": float("nan"),
+                  "at_first_media": float("nan"), "at_post_media": float("nan")}
+
     try:
         cfg = dataclasses.replace(CFG)
-        ENTEROS = {
-            "horas_especialista_1ra", "horas_control_post", "cupos_laboratorio_ugd",
-            "cupos_ecografia_matrona", "cupos_ecografia_ugd", "dias_publicacion",
-            "num_matronas", "num_agentes_ugd",
-        }
         cfg.fixed_weekly_capacity        = int(round(incumbente_cfg.get("horas_especialista_1ra", 16)))
         cfg.use_fixed_weekly_capacity    = True
         cfg.fixed_post_control_capacity  = int(round(incumbente_cfg.get("horas_control_post", 40)))
@@ -285,25 +320,60 @@ def _re_evaluar_incumbente(incumbente_cfg: dict, r_final: int,
         cfg.agent_capacity               = int(round(incumbente_cfg.get("num_agentes_ugd", 1)))
         cfg.not_contactable_p            = float(incumbente_cfg.get("pct_no_contactabilidad", 0.30))
         cfg.blocked_pct_post_control     = float(incumbente_cfg.get("pct_bloqueo_post_control", 0.34))
+        cfg.benchmark_mode               = True
 
-        vals = [float(run_once(seed_offset=seed_offset_base + r, cfg=cfg)["tts_full_days_mean"])
-                for r in range(r_final)]
-        arr = np.array(vals)
-        return {
-            "media":   float(arr.mean()),
-            "sd":      float(arr.std(ddof=1)),
-            "ic95_lo": float(arr.mean() - 1.96 * arr.std(ddof=1) / np.sqrt(r_final)),
-            "ic95_hi": float(arr.mean() + 1.96 * arr.std(ddof=1) / np.sqrt(r_final)),
-            "r_final": r_final,
+        obj_vals  = []
+        tts_vals  = []
+        at_vals   = []
+        at_f_vals = []
+        at_p_vals = []
+        for r in range(r_final):
+            res = run_once(seed_offset=seed_offset_base + r, cfg=cfg)
+            tts = float(res.get("tts_full_days_mean", float("nan")))
+            at  = float(res.get("total_atenciones",   float("nan")))
+            at_f = float(res.get("total_atenciones_first", float("nan")))
+            at_p = float(res.get("total_atenciones_post",  float("nan")))
+            tts_vals.append(tts)
+            at_vals.append(at)
+            at_f_vals.append(at_f)
+            at_p_vals.append(at_p)
+            if pesos_kpi:
+                obj_vals.append(sum(float(pesos_kpi.get(k, 0.0)) * float(res.get(k, 0.0))
+                                    for k in pesos_kpi))
+            else:
+                obj_vals.append(tts)
+
+        def _stats(arr_list):
+            a = np.array(arr_list, dtype=float)
+            n = len(a)
+            return {"media":   float(a.mean()),
+                    "sd":      float(a.std(ddof=1)),
+                    "ic95_lo": float(a.mean() - 1.96 * a.std(ddof=1) / np.sqrt(n)),
+                    "ic95_hi": float(a.mean() + 1.96 * a.std(ddof=1) / np.sqrt(n))}
+
+        obj_s = _stats(obj_vals)
+        tts_s = _stats(tts_vals)
+        at_s  = _stats(at_vals)
+
+        reeval = {**obj_s, "r_final": r_final}
+        kpis   = {
+            "tts_media":    tts_s["media"],   "tts_sd":      tts_s["sd"],
+            "tts_ic95_lo":  tts_s["ic95_lo"], "tts_ic95_hi": tts_s["ic95_hi"],
+            "at_media":     at_s["media"],    "at_sd":       at_s["sd"],
+            "at_ic95_lo":   at_s["ic95_lo"],  "at_ic95_hi":  at_s["ic95_hi"],
+            "at_first_media": float(np.mean(at_f_vals)),
+            "at_post_media":  float(np.mean(at_p_vals)),
         }
+        return reeval, kpis
+
     except Exception as e:
         log.error("Re-evaluación falló: %s", e)
-        return {"media": float("nan"), "sd": float("nan"),
-                "ic95_lo": float("nan"), "ic95_hi": float("nan"), "r_final": 0}
+        return nan_reeval, nan_kpis
 
 
 def _correr_una(modulo: str, seed: int, n_trials: int, r_final: int,
-                out_dir: Path, resume: bool = False) -> dict:
+                out_dir: Path, resume: bool = False,
+                pesos_kpi: dict = None) -> dict:
     """
     Ejecuta un módulo con una macro-seed. Guarda JSON individual.
     Si resume=True y el JSON ya existe, lo carga sin re-ejecutar.
@@ -323,9 +393,9 @@ def _correr_una(modulo: str, seed: int, n_trials: int, r_final: int,
 
     try:
         if modulo == "RS":
-            resultado_bruto = _random_search_runner(n_trials=n_trials, seed=seed)
+            resultado_bruto = _random_search_runner(n_trials=n_trials, seed=seed,
+                                                    pesos_kpi=pesos_kpi)
             historia = resultado_bruto["historia_costos"]
-            evals_iter = 3  # n_reps por defecto de RS
             import modulo_comparativa_caja_negra as comp
             conv_eval = comp._convergencia_iterativa(historia)
             conv_time = comp._tiempos_convergencia(historia)
@@ -333,6 +403,7 @@ def _correr_una(modulo: str, seed: int, n_trials: int, r_final: int,
         elif modulo in FAMILIA_SMAC:
             import modulo_comparativa_caja_negra as comp
             params = _params_para_runner(modulo, n_trials, seed)
+            params["pesos_kpi"] = pesos_kpi
             resultado_bruto = comp._RUNNERS[modulo](**params)
             conv_eval = resultado_bruto.get("conv_eval", [])
             conv_time = resultado_bruto.get("conv_time", [])
@@ -341,37 +412,54 @@ def _correr_una(modulo: str, seed: int, n_trials: int, r_final: int,
         elif modulo in FAMILIA_ITER:
             import modulo_comparativa_caja_negra as comp
             params = _params_para_runner(modulo, n_trials, seed)
-            evals_it = _evals_por_iter(modulo, params)
+            params["pesos_kpi"] = pesos_kpi
             resultado_bruto = comp._RUNNERS[modulo](**params)
             conv_eval = resultado_bruto.get("conv_eval", [])
             conv_time = resultado_bruto.get("conv_time", [])
+
+        elif modulo == "SA":
+            from modulo_sa_alrefaei import sa_alrefaei_runner
+            params = _params_para_runner(modulo, n_trials, seed)
+            params["pesos_kpi"] = pesos_kpi
+            resultado_bruto = sa_alrefaei_runner(**params)
+            conv_eval = resultado_bruto.get("conv_eval", [])
+            conv_time = resultado_bruto.get("conv_time", [])
+            historia  = resultado_bruto
 
         else:
             raise ValueError(f"Módulo '{modulo}' no reconocido.")
 
         # Re-evaluación honesta del incumbente
+        _nan_reeval = {"media": float("nan"), "sd": float("nan"),
+                       "ic95_lo": float("nan"), "ic95_hi": float("nan"), "r_final": 0}
+        _nan_kpis   = {"tts_media": float("nan"), "tts_sd": float("nan"),
+                       "tts_ic95_lo": float("nan"), "tts_ic95_hi": float("nan"),
+                       "at_media": float("nan"),  "at_sd": float("nan"),
+                       "at_ic95_lo": float("nan"), "at_ic95_hi": float("nan"),
+                       "at_first_media": float("nan"), "at_post_media": float("nan")}
         incumbente_cfg = resultado_bruto.get("incumbente", {})
         if isinstance(incumbente_cfg, dict) and incumbente_cfg:
-            reeval = _re_evaluar_incumbente(
+            reeval, kpis_incumbente = _re_evaluar_incumbente(
                 incumbente_cfg, r_final,
-                seed_offset_base=500_000 + seed * r_final
+                seed_offset_base=500_000 + seed * r_final,
+                pesos_kpi=pesos_kpi,
             )
         else:
-            reeval = {"media": float("nan"), "sd": float("nan"),
-                      "ic95_lo": float("nan"), "ic95_hi": float("nan"), "r_final": 0}
+            reeval, kpis_incumbente = _nan_reeval, _nan_kpis
 
         registro = {
-            "modulo":          modulo,
-            "macro_seed":      seed,
-            "n_trials_param":  n_trials,
-            "n_eval_usadas":   resultado_bruto.get("n_evaluaciones",
-                               len(resultado_bruto.get("historia_costos", [])) * _evals_por_iter(modulo, {})),
-            "costo_opt":       resultado_bruto.get("costo_incumbente", float("nan")),
-            "reeval":          reeval,
-            "conv_eval":       conv_eval,
-            "conv_time":       conv_time,
-            "incumbente":      incumbente_cfg,
-            "tiempo_seg":      time.time() - t0,
+            "modulo":           modulo,
+            "macro_seed":       seed,
+            "n_trials_param":   n_trials,
+            "n_eval_usadas":    resultado_bruto.get("n_evaluaciones",
+                                len(resultado_bruto.get("historia_costos", [])) * _evals_por_iter(modulo, {})),
+            "costo_opt":        resultado_bruto.get("costo_incumbente", float("nan")),
+            "reeval":           reeval,
+            "kpis_incumbente":  kpis_incumbente,
+            "conv_eval":        conv_eval,
+            "conv_time":        conv_time,
+            "incumbente":       incumbente_cfg,
+            "tiempo_seg":       time.time() - t0,
         }
 
         # Guardar JSON individual
@@ -576,24 +664,71 @@ def _tabla_significancia(grupos: dict[str, list[dict]], out_dir: Path) -> str:
 
 def _tabla_resumen(grupos: dict[str, list[dict]], out_dir: Path,
                    baseline: float = 270.0) -> str:
-    """Tabla de texto con costo medio re-evaluado e IC95."""
-    lineas = [f"# Tabla resumen — costo final re-evaluado (baseline={baseline:.0f} d)\n"]
-    lineas.append(f"{'Método':<14}{'Costo medio':>14}{'IC95 lo':>10}{'IC95 hi':>10}{'vs base %':>12}{'n seeds':>9}")
-    lineas.append("-" * 69)
+    """Tabla de texto con objetivo compuesto + TTS + atenciones por separado."""
+
+    def _get(r, key):
+        v = r.get("kpis_incumbente", {}).get(key, float("nan"))
+        return float(v) if v == v else float("nan")
+
+    # ── Tabla 1: objetivo compuesto re-evaluado ──────────────────────────
+    lineas = [f"# Tabla resumen — objetivo compuesto re-evaluado (baseline TTS={baseline:.0f} d)\n"]
+    lineas.append(f"{'Método':<16}{'Obj. medio':>12}{'IC95 lo':>10}{'IC95 hi':>10}{'TTS media':>11}{'Atenc. media':>14}{'n':>5}")
+    lineas.append("-" * 80)
 
     for m in sorted(grupos.keys()):
-        reevals = [r["reeval"]["media"] for r in grupos[m]
-                   if "reeval" in r and r["reeval"].get("media") == r["reeval"].get("media")]
-        lo_vals = [r["reeval"]["ic95_lo"] for r in grupos[m] if "reeval" in r]
-        hi_vals = [r["reeval"]["ic95_hi"] for r in grupos[m] if "reeval" in r]
-        if not reevals:
+        valid = [r for r in grupos[m]
+                 if "reeval" in r and r["reeval"].get("media") == r["reeval"].get("media")]
+        if not valid:
             continue
-        media = float(np.mean(reevals))
-        lo    = float(np.mean(lo_vals)) if lo_vals else float("nan")
-        hi    = float(np.mean(hi_vals)) if hi_vals else float("nan")
-        pct   = (baseline - media) / baseline * 100
-        label = ESTILO.get(m, {}).get("label", m)
-        lineas.append(f"{label:<14}{media:>14.2f}{lo:>10.2f}{hi:>10.2f}{pct:>12.1f}%{len(reevals):>9}")
+        obj_media = float(np.mean([r["reeval"]["media"]   for r in valid]))
+        obj_lo    = float(np.mean([r["reeval"]["ic95_lo"] for r in valid]))
+        obj_hi    = float(np.mean([r["reeval"]["ic95_hi"] for r in valid]))
+        tts_media = float(np.nanmean([_get(r, "tts_media") for r in valid]))
+        at_media  = float(np.nanmean([_get(r, "at_media")  for r in valid]))
+        label     = ESTILO.get(m, {}).get("label", m)
+        lineas.append(
+            f"{label:<16}{obj_media:>12.2f}{obj_lo:>10.2f}{obj_hi:>10.2f}"
+            f"{tts_media:>11.1f}{at_media:>14.1f}{len(valid):>5}"
+        )
+
+    lineas.append("")
+    # ── Tabla 2: TTS desglosado ──────────────────────────────────────────
+    lineas.append("# TTS total medio por método (días) — con IC95\n")
+    lineas.append(f"{'Método':<16}{'TTS media':>11}{'IC95 lo':>10}{'IC95 hi':>10}{'vs base':>9}{'n':>5}")
+    lineas.append("-" * 62)
+    for m in sorted(grupos.keys()):
+        valid = [r for r in grupos[m] if "kpis_incumbente" in r]
+        if not valid:
+            continue
+        tts_arr = np.array([_get(r, "tts_media") for r in valid])
+        tts_lo  = np.array([_get(r, "tts_ic95_lo") for r in valid])
+        tts_hi  = np.array([_get(r, "tts_ic95_hi") for r in valid])
+        media   = float(np.nanmean(tts_arr))
+        lo      = float(np.nanmean(tts_lo))
+        hi      = float(np.nanmean(tts_hi))
+        pct     = (baseline - media) / baseline * 100
+        label   = ESTILO.get(m, {}).get("label", m)
+        lineas.append(f"{label:<16}{media:>11.1f}{lo:>10.1f}{hi:>10.1f}{pct:>+9.1f}%{len(valid):>5}")
+
+    lineas.append("")
+    # ── Tabla 3: Atenciones desglosado ───────────────────────────────────
+    lineas.append("# Total atenciones medio por método — con IC95\n")
+    lineas.append(f"{'Método':<16}{'At. total':>11}{'IC95 lo':>10}{'IC95 hi':>10}{'At. 1ra':>10}{'At. post':>11}{'n':>5}")
+    lineas.append("-" * 74)
+    for m in sorted(grupos.keys()):
+        valid = [r for r in grupos[m] if "kpis_incumbente" in r]
+        if not valid:
+            continue
+        at_arr  = np.array([_get(r, "at_media")       for r in valid])
+        at_lo   = np.array([_get(r, "at_ic95_lo")     for r in valid])
+        at_hi   = np.array([_get(r, "at_ic95_hi")     for r in valid])
+        at_f    = np.array([_get(r, "at_first_media")  for r in valid])
+        at_p    = np.array([_get(r, "at_post_media")   for r in valid])
+        label   = ESTILO.get(m, {}).get("label", m)
+        lineas.append(
+            f"{label:<16}{np.nanmean(at_arr):>11.1f}{np.nanmean(at_lo):>10.1f}"
+            f"{np.nanmean(at_hi):>10.1f}{np.nanmean(at_f):>10.1f}{np.nanmean(at_p):>11.1f}{len(valid):>5}"
+        )
 
     txt = "\n".join(lineas)
     (out_dir / "tabla_resumen.txt").write_text(txt)
@@ -606,7 +741,9 @@ def _tabla_resumen(grupos: dict[str, list[dict]], out_dir: Path,
 
 def ejecutar(modulos: list[str], n_seeds: int, n_trials: int,
              r_final: int, n_cores: int, out_dir: Path,
-             baseline: float = 270.0, resume: bool = False) -> None:
+             baseline: float = 270.0, resume: bool = False,
+             pesos_kpi: dict = None,
+             max_seed_horas: float = 24.0) -> None:
 
     out_dir.mkdir(parents=True, exist_ok=True)
     tareas = [(m, s) for m in modulos for s in range(n_seeds)]
@@ -625,6 +762,8 @@ def ejecutar(modulos: list[str], n_seeds: int, n_trials: int,
     log.info("Módulos: %s", modulos)
     log.info("Seeds: %d  |  n_trials: %d  |  r_final: %d  |  cores: %d",
              n_seeds, n_trials, r_final, n_cores)
+    if pesos_kpi:
+        log.info("Objetivo compuesto: %s", pesos_kpi)
     log.info("Total de corridas: %d", len(tareas))
     log.info("Salida: %s", out_dir)
     log.info("=" * 65)
@@ -632,19 +771,27 @@ def ejecutar(modulos: list[str], n_seeds: int, n_trials: int,
     resultados = []
     with concurrent.futures.ProcessPoolExecutor(max_workers=n_cores) as ex:
         futuros = {
-            ex.submit(_correr_una, m, s, n_trials, r_final, out_dir, resume): (m, s)
+            ex.submit(_correr_una, m, s, n_trials, r_final, out_dir, resume, pesos_kpi): (m, s)
             for m, s in tareas
         }
         for i, fut in enumerate(concurrent.futures.as_completed(futuros), 1):
             m, s = futuros[fut]
             try:
-                r = fut.result()
+                r = fut.result(timeout=max_seed_horas * 3600)
                 resultados.append(r)
                 reeval_med = r.get("reeval", {}).get("media", float("nan"))
                 log.info("[%d/%d] %-10s seed=%2d  costo_opt=%.2f  reeval=%.2f  t=%.0fs",
                          i, len(tareas), m, s,
                          r.get("costo_opt", float("nan")),
                          reeval_med, r.get("tiempo_seg", 0))
+            except concurrent.futures.TimeoutError:
+                log.error("[%d/%d] %-10s seed=%2d  TIMEOUT (>%.0fh) — descartada",
+                          i, len(tareas), m, s, max_seed_horas)
+                resultados.append({
+                    "modulo": m, "macro_seed": s,
+                    "error": f"TIMEOUT >{max_seed_horas:.0f}h",
+                    "tiempo_seg": max_seed_horas * 3600,
+                })
             except Exception as exc:
                 log.error("[%d/%d] %s seed=%d FALLÓ: %s", i, len(tareas), m, s, exc)
 
@@ -680,14 +827,14 @@ def main():
     p = argparse.ArgumentParser(
         description="Benchmark riguroso SO-main + files (IFORS julio 2026).")
     p.add_argument("--modulos", nargs="+",
-                   default=["M4", "M8", "M10", "M13", "RS"],
+                   default=["M4", "M7", "M8", "M10", "M11", "M13", "RS"],
                    help="Módulos a correr (M4 M7 M8 M9 M10 M11 M12 M13 M14 RS).")
-    p.add_argument("--n_seeds",  type=int, default=15,
-                   help="Macro-réplicas por módulo (default 15).")
+    p.add_argument("--n_seeds",  type=int, default=10,
+                   help="Macro-réplicas por módulo (default 10).")
     p.add_argument("--n_trials", type=int, default=150,
                    help="Presupuesto de evaluaciones del simulador (default 150).")
-    p.add_argument("--r_final",  type=int, default=50,
-                   help="Réplicas para re-evaluar incumbente (default 50).")
+    p.add_argument("--r_final",  type=int, default=30,
+                   help="Réplicas para re-evaluar incumbente (default 30).")
     p.add_argument("--n_cores",  type=int, default=9,
                    help="Procesos paralelos (default 9 = cores físicos - 1).")
     p.add_argument("--baseline", type=float, default=270.0,
@@ -696,6 +843,12 @@ def main():
                    help="Directorio de salida.")
     p.add_argument("--resume",   action="store_true",
                    help="Reanuda corrida: carga JSONs existentes y salta corridas ya completadas.")
+    p.add_argument("--lambda_obj", type=float, default=None,
+                   help="Valor λ para objetivo compuesto f=tts_full - λ·total_atenciones "
+                        "(obtenido con calibrar_lambda.py). Si se omite usa sólo TTS.")
+    p.add_argument("--max_seed_horas", type=float, default=24.0,
+                   help="Timeout máximo por seed en horas (default 24h). "
+                        "Seeds que superen este límite se descartan y el benchmark continúa.")
     args = p.parse_args()
 
     logging.basicConfig(
@@ -703,15 +856,24 @@ def main():
         format="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%H:%M:%S",
     )
+
+    pesos_kpi = None
+    if args.lambda_obj is not None:
+        pesos_kpi = {"tts_full_days_mean": 1.0, "total_atenciones": -args.lambda_obj}
+        log.info("Objetivo compuesto activo: f = tts_full - %.4f · total_atenciones",
+                 args.lambda_obj)
+
     ejecutar(
-        modulos  = args.modulos,
-        n_seeds  = args.n_seeds,
-        n_trials = args.n_trials,
-        r_final  = args.r_final,
-        n_cores  = args.n_cores,
-        out_dir  = Path(args.out),
-        baseline = args.baseline,
-        resume   = args.resume,
+        modulos        = args.modulos,
+        n_seeds        = args.n_seeds,
+        n_trials       = args.n_trials,
+        r_final        = args.r_final,
+        n_cores        = args.n_cores,
+        out_dir        = Path(args.out),
+        baseline       = args.baseline,
+        resume         = args.resume,
+        pesos_kpi      = pesos_kpi,
+        max_seed_horas = args.max_seed_horas,
     )
 
 
