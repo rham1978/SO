@@ -90,6 +90,7 @@ ESTILO = {
     "M13": {"label": "M6 SPSA",          "color": "#7f7f7f", "ls": ":",  "marker": "x"},
     "M14": {"label": "ALOE",             "color": "#bcbd22", "ls": (0, (3,1,1,1)), "marker": "*"},
     "RS":  {"label": "RS",               "color": "#17becf", "ls": "--", "marker": "P"},
+    "SA":  {"label": "M8 SA (A&A99)",    "color": "#e377c2", "ls": "--", "marker": "h"},
 }
 
 # Parámetros del runner por familia
@@ -254,6 +255,10 @@ def _params_para_runner(modulo: str, n_trials: int, seed: int) -> dict:
         max_iter = max(1, n_trials // 108)
         return {"max_iter": max_iter, "r": r, "n_workers": 0, "seed": seed}
 
+    elif modulo == "SA":   # Alrefaei & Andradóttir: evalúa x + z = 2*L por iter
+        L = 3
+        return {"n_trials": n_trials, "L": L, "seed": seed}
+
     return {}
 
 
@@ -272,6 +277,8 @@ def _evals_por_iter(modulo: str, params: dict) -> int:
         return 2 * _d * 2 + 2 * params.get("r", 5)  # grad + armijo
     elif modulo == "RS":
         return params.get("n_reps", 3)
+    elif modulo == "SA":
+        return 2 * params.get("L", 3)
     return 1
 
 
@@ -409,6 +416,15 @@ def _correr_una(modulo: str, seed: int, n_trials: int, r_final: int,
             resultado_bruto = comp._RUNNERS[modulo](**params)
             conv_eval = resultado_bruto.get("conv_eval", [])
             conv_time = resultado_bruto.get("conv_time", [])
+
+        elif modulo == "SA":
+            from modulo_sa_alrefaei import sa_alrefaei_runner
+            params = _params_para_runner(modulo, n_trials, seed)
+            params["pesos_kpi"] = pesos_kpi
+            resultado_bruto = sa_alrefaei_runner(**params)
+            conv_eval = resultado_bruto.get("conv_eval", [])
+            conv_time = resultado_bruto.get("conv_time", [])
+            historia  = resultado_bruto
 
         else:
             raise ValueError(f"Módulo '{modulo}' no reconocido.")

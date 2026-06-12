@@ -47,7 +47,7 @@ echo "    Lambda calibrado: $LAMBDA"
 echo ""
 echo ">>> Paso 3: Benchmark con lambda=$LAMBDA — $(date)"
 python3 benchmark_riguroso.py \
-    --modulos M4 M7 M8 M10 M11 M13 RS \
+    --modulos M4 M7 M8 M10 M11 M13 RS SA \
     --n_seeds 10 \
     --n_trials 150 \
     --r_final 30 \
