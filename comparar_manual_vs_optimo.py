@@ -94,18 +94,74 @@ def escenarios_manuales(CFG):
     }
 
 # ──────────────────────────────────────────────────────────────────────────────
-def evaluar_cfg(cfg, r, seed_base):
-    from simulador_clinica_baseline import run_once
-    tts, at = [], []
-    for k in range(r):
-        res = run_once(seed_offset=seed_base + k, cfg=cfg)
-        tts.append(float(res.get("tts_full_days_mean", np.nan)))
-        at.append(float(res.get("total_atenciones", np.nan)))
-    return np.array(tts), np.array(at)
+# Evaluación a prueba de cuelgues: cada réplica corre en su propio proceso con
+# timeout. Si una simulación se queda pegada (deadlock del DES), se TERMINA el
+# proceso y la réplica se marca NaN — nunca cuelga el script.
+# ──────────────────────────────────────────────────────────────────────────────
+def _worker_eval(q, idx, seed, cfg_dict):
+    try:
+        from simulador_clinica_baseline import run_once, SimConfig
+        cfg = SimConfig(**cfg_dict)
+        res = run_once(seed_offset=seed, cfg=cfg)
+        q.put((idx, float(res.get("tts_full_days_mean", float("nan"))),
+                    float(res.get("total_atenciones", float("nan")))))
+    except Exception:
+        q.put((idx, float("nan"), float("nan")))
+
+
+def evaluar_cfg(cfg, r, seed_base, timeout_s=900, n_workers=4):
+    """Corre r réplicas (en paralelo, hasta n_workers) con timeout por réplica.
+    Devuelve (tts[], at[], n_timeout). Nunca se queda pegado."""
+    import dataclasses, multiprocessing as mp, time
+    cfg_dict = dataclasses.asdict(cfg)
+    ctx = mp.get_context("fork")
+    q = ctx.Queue()
+    results, running, n_to = {}, {}, 0
+    pending = list(range(r))
+
+    def launch(idx):
+        p = ctx.Process(target=_worker_eval, args=(q, idx, seed_base + idx, cfg_dict))
+        p.daemon = True; p.start(); running[idx] = (p, time.time())
+
+    while pending and len(running) < max(1, n_workers):
+        launch(pending.pop(0))
+
+    while running:
+        try:
+            while True:
+                idx, t, a = q.get_nowait(); results[idx] = (t, a)
+        except Exception:
+            pass
+        now = time.time()
+        for idx, (p, t0) in list(running.items()):
+            timed_out = (now - t0) > timeout_s
+            if not p.is_alive() or timed_out:
+                if timed_out and p.is_alive():
+                    p.terminate(); n_to += 1
+                p.join()
+                results.setdefault(idx, (float("nan"), float("nan")))
+                del running[idx]
+                if pending:
+                    launch(pending.pop(0))
+        time.sleep(0.3)
+    # drenar cola final
+    try:
+        while True:
+            idx, t, a = q.get_nowait(); results[idx] = (t, a)
+    except Exception:
+        pass
+    tts = np.array([results.get(i, (np.nan, np.nan))[0] for i in range(r)], float)
+    at  = np.array([results.get(i, (np.nan, np.nan))[1] for i in range(r)], float)
+    return tts, at, n_to
 
 def _ic(a):
     a = a[np.isfinite(a)]; n = len(a)
-    m, s = a.mean(), a.std(ddof=1)
+    if n == 0:
+        return float("nan"), float("nan"), float("nan"), float("nan")
+    m = float(a.mean())
+    if n < 2:
+        return m, 0.0, m, m
+    s = float(a.std(ddof=1))
     return m, s, m - 1.96*s/np.sqrt(n), m + 1.96*s/np.sqrt(n)
 
 def mejor_incumbente_por_metodo(res_dir):
@@ -129,6 +185,10 @@ def main():
     ap.add_argument("--out", default="comparacion_manual")
     ap.add_argument("--solo_metodos", nargs="*", default=None,
                     help="limitar a estos módulos óptimos (def: todos)")
+    ap.add_argument("--timeout", type=float, default=900.0,
+                    help="timeout por réplica [s] (anti-deadlock; def 900)")
+    ap.add_argument("--n_workers", type=int, default=4,
+                    help="procesos paralelos para las réplicas (def 4)")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
 
@@ -137,13 +197,19 @@ def main():
 
     filas = []   # (nombre, tipo, tts_arr, at_arr)
 
+    def _eval(cfg):
+        return evaluar_cfg(cfg, args.r, args.seed_base,
+                           timeout_s=args.timeout, n_workers=args.n_workers)
+
     # 1) escenarios manuales
     for nombre, ov in escenarios_manuales(CFG).items():
         cfg = dc.replace(CFG); cfg.benchmark_mode = True
         for k, v in ov.items(): setattr(cfg, k, v)
-        tts, at = evaluar_cfg(cfg, args.r, args.seed_base)
+        tts, at, n_to = _eval(cfg)
         filas.append((nombre, "manual", tts, at))
-        print(f"[manual] {nombre:14} TTS={tts.mean():7.1f}d  atenciones={at.mean():7.0f}", flush=True)
+        aviso = f"  ⚠ {n_to} timeouts" if n_to else ""
+        print(f"[manual] {nombre:14} TTS={np.nanmean(tts):7.1f}d  "
+              f"atenciones={np.nanmean(at):7.0f}{aviso}", flush=True)
 
     # 2) incumbentes óptimos (mismos seeds → CRN/pareado)
     bestinc = mejor_incumbente_por_metodo(args.res)
@@ -151,9 +217,11 @@ def main():
         if args.solo_metodos and m not in args.solo_metodos: continue
         cfg = dc.replace(CFG); cfg.benchmark_mode = True
         aplicar_incumbente(cfg, inc)
-        tts, at = evaluar_cfg(cfg, args.r, args.seed_base)
+        tts, at, n_to = _eval(cfg)
         filas.append((f"ÓPTIMO {m}", "optimo", tts, at))
-        print(f"[optimo] {m:14} TTS={tts.mean():7.1f}d  atenciones={at.mean():7.0f}", flush=True)
+        aviso = f"  ⚠ {n_to} timeouts" if n_to else ""
+        print(f"[optimo] {m:14} TTS={np.nanmean(tts):7.1f}d  "
+              f"atenciones={np.nanmean(at):7.0f}{aviso}", flush=True)
 
     # 3) tabla + test pareado vs Current
     cur = next(f for f in filas if f[0] == "Current")[2]
@@ -163,12 +231,14 @@ def main():
     salida = []
     for nombre, tipo, tts, at in filas:
         m, s, lo, hi = _ic(tts)
-        am = at[np.isfinite(at)].mean()
-        d = m - cur.mean()
+        am = float(np.nanmean(at))
+        d = m - float(np.nanmean(cur))
         if nombre == "Current":
             p = float("nan")
         else:
-            try: p = stats.wilcoxon(tts, cur).pvalue
+            # pareado solo sobre réplicas válidas en AMBOS (CRN)
+            mask = np.isfinite(tts) & np.isfinite(cur)
+            try: p = stats.wilcoxon(tts[mask], cur[mask]).pvalue
             except Exception: p = float("nan")
         print(f"{nombre:16}{f'{m:.1f} [{lo:.1f},{hi:.1f}]':26}{am:<14.0f}"
               f"{d:+.1f}{'':10}{p:.4f}")
@@ -182,9 +252,10 @@ def main():
     for nombre, tipo, tts, at in filas:
         mk = "s" if tipo == "manual" else "o"
         c = "#d62728" if tipo == "manual" else "#1f77b4"
-        plt.scatter(at.mean(), tts.mean(), s=90, marker=mk, color=c, zorder=3,
+        xa, yt = float(np.nanmean(at)), float(np.nanmean(tts))
+        plt.scatter(xa, yt, s=90, marker=mk, color=c, zorder=3,
                     edgecolor="k", linewidth=0.6)
-        plt.annotate(nombre, (at.mean(), tts.mean()), fontsize=8,
+        plt.annotate(nombre, (xa, yt), fontsize=8,
                      xytext=(5, 4), textcoords="offset points")
     plt.scatter([], [], marker="s", color="#d62728", label="manual")
     plt.scatter([], [], marker="o", color="#1f77b4", label="óptimo")
