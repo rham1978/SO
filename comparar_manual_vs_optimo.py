@@ -84,9 +84,9 @@ def escenarios_manuales(CFG):
                          blocked_pct=0.10, publish_lead_workdays=7, agent_capacity=2,
                          blocked_pct_post_control=0.10, empty_control_p_ugd=0.10,
                          matrona_capacity=2, mat_us_per_week=25),
-        # Mgmt+Cap v2 = cap 1ra(40→30, acotado al rango del optimizador [8,30]) +
-        # 3 agentes + postFC 50 + 2 matronas + eco 50 + lab 50 (absoluto)
-        "Mgmt+Cap v2": dict(use_fixed_weekly_capacity=True,  fixed_weekly_capacity=30,
+        # Mgmt+Cap v2 = cap 1ra(40, escenario real; excede el rango del optimizador
+        # [8,30]) + 3 agentes + postFC 50 + 2 matronas + eco 50 + lab 50 (absoluto)
+        "Mgmt+Cap v2": dict(use_fixed_weekly_capacity=True,  fixed_weekly_capacity=40,
                             use_fixed_post_control_hours=True, fixed_post_control_capacity=50,
                             blocked_pct=0.10, publish_lead_workdays=7, agent_capacity=3,
                             blocked_pct_post_control=0.10, empty_control_p_ugd=0.10,
