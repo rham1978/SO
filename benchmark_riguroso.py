@@ -89,8 +89,9 @@ ESTILO = {
     "M12": {"label": "STRONG",           "color": "#e377c2", "ls": ":",  "marker": "h"},
     "M13": {"label": "M6 SPSA",          "color": "#7f7f7f", "ls": ":",  "marker": "x"},
     "M14": {"label": "ALOE",             "color": "#bcbd22", "ls": (0, (3,1,1,1)), "marker": "*"},
-    "RS":  {"label": "RS",               "color": "#17becf", "ls": "--", "marker": "P"},
-    "SA":  {"label": "M8 SA (A&A99)",    "color": "#e377c2", "ls": "--", "marker": "h"},
+    "RS":      {"label": "RS",                    "color": "#17becf", "ls": "--", "marker": "P"},
+    "SA":      {"label": "M8 SA (A&A99)",        "color": "#e377c2", "ls": "--", "marker": "h"},
+    "SMAC_RF": {"label": "M9 SMAC-RF (HPO)",     "color": "#d62728", "ls": "-",  "marker": "*"},
 }
 
 # Parámetros del runner por familia
@@ -259,6 +260,11 @@ def _params_para_runner(modulo: str, n_trials: int, seed: int) -> dict:
         L = 3
         return {"n_trials": n_trials, "L": L, "seed": seed}
 
+    elif modulo == "SMAC_RF":  # SMAC HPO: Random Forest + EI
+        n_corridas = 3
+        n_smac = max(5, n_trials // n_corridas)
+        return {"n_trials": n_smac, "n_corridas": n_corridas, "seed": seed}
+
     return {}
 
 
@@ -279,6 +285,8 @@ def _evals_por_iter(modulo: str, params: dict) -> int:
         return params.get("n_reps", 3)
     elif modulo == "SA":
         return 2 * params.get("L", 3)
+    elif modulo == "SMAC_RF":
+        return params.get("n_corridas", 3)
     return 1
 
 
@@ -422,6 +430,15 @@ def _correr_una(modulo: str, seed: int, n_trials: int, r_final: int,
             params = _params_para_runner(modulo, n_trials, seed)
             params["pesos_kpi"] = pesos_kpi
             resultado_bruto = sa_alrefaei_runner(**params)
+            conv_eval = resultado_bruto.get("conv_eval", [])
+            conv_time = resultado_bruto.get("conv_time", [])
+            historia  = resultado_bruto
+
+        elif modulo == "SMAC_RF":
+            from modulo_smac_rf import smac_rf_runner
+            params = _params_para_runner(modulo, n_trials, seed)
+            params["pesos_kpi"] = pesos_kpi
+            resultado_bruto = smac_rf_runner(**params)
             conv_eval = resultado_bruto.get("conv_eval", [])
             conv_time = resultado_bruto.get("conv_time", [])
             historia  = resultado_bruto
