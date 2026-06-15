@@ -7,6 +7,10 @@ __pycache__/
 smac_comp_*/
 smac_output*/
 
+# Pipeline / análisis: artefactos generados (logs, datos, gráficas)
+pipeline_out/
+analisis_out/
+
 # Generated outputs (JSONs, PNGs, PPTXs) — keep in working dir but don't track
 *.json
 *.png
