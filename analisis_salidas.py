@@ -60,7 +60,7 @@ VARIABLES = {
     "num_agentes_ugd":            (1,    1,   4,    "int"),
     "pct_bloqueo_1ra":            (0.32, 0.05, 0.50, "float"),
     "pct_consultas_vacias":       (0.30, 0.05, 0.50, "float"),
-    "pct_no_contactabilidad":     (0.30, 0.05, 0.50, "float"),
+    "pct_no_contactabilidad":     (0.15, 0.05, 0.50, "float"),
     "pct_bloqueo_post_control":   (0.34, 0.05, 0.50, "float"),
 }
 OBJETIVO = "tts_full_days_mean (tiempo medio en sistema, días)"

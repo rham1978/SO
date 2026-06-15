@@ -46,17 +46,21 @@ def aplicar_incumbente(cfg, inc):
 # ──────────────────────────────────────────────────────────────────────────────
 # Escenarios MANUALES (de la tabla/imagen del usuario).
 #
-#   ⚠️ "Diagnostic resources" es AMBIGUO — confirmar con el usuario.
-#   Interpretación provisional ('+X' = fijar a X):
-#     · "2 mid."        → num_matronas = 2
-#     · "+25 US"        → cupos_ecografia_matrona = cupos_ecografia_ugd = 25
-#     · "+50 slots"     → cupos_laboratorio_ugd = 50  (US quedan en base 25)
-#   'Base' = valores por defecto del simulador.
-#   pct_no_contactabilidad no figura en la tabla → se deja en el default del cfg.
+# Mapeo tomado del código (no inventado):
+#   · variable→campo SimConfig: EscenarioConfig en modulo3_comparacion.py
+#     (mat_us_per_week=cupos eco matrona, ugd_us_per_week=cupos eco UGD,
+#      ugd_lab_per_week=cupos lab UGD, matrona_capacity=nº matronas).
+#   · valores 'Base': PARAM_BASELINE en modulo_comparativa_caja_negra.py.
+#   · OJO: el simulador consume 'fixed_post_control_capacity' (línea 2091),
+#     NO 'fixed_post_control_hours' (que modulo3 setea pero el sim ignora).
+#
+#   "Diagnostic resources" (números absolutos, igual que '30 fixed'/'40 fixed'):
+#     · "2 mid."     → matrona_capacity = 2
+#     · "+25 US"     → mat_us_per_week = ugd_us_per_week = 25   (eco/ultrasonido)
+#     · "+50 slots"  → ugd_lab_per_week = 50                    (laboratorio)
+#   'Base' = PARAM_BASELINE (lab 54, eco 25/25, matronas 1).
+#   pct_no_contactabilidad no está en la tabla → queda en base 0.15 (PARAM_BASELINE).
 # ──────────────────────────────────────────────────────────────────────────────
-def _cfg_base_defaults(cfg):
-    """Valores 'Base' de recursos diagnósticos (defaults del SimConfig)."""
-    return cfg  # no se tocan eco/lab/matronas → quedan en default
 
 def escenarios_manuales(CFG):
     """Devuelve {nombre: dict de overrides de campos SimConfig}."""
