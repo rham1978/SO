@@ -234,12 +234,12 @@ def _tiempos_convergencia(historia_costos: list):
 
 def run_m4_blackbox(n_trials: int = 30, n_corridas: int = 2, seed: int = 42,
                     pesos_kpi: dict = None) -> dict:
-    """M4: SMAC con surrogado Random Forest (HPO facade: RF + EI + Sobol)."""
-    log.info("▶ M4 — SMAC RF (Random Forest + EI)  [n_trials=%d, n_corridas=%d]",
+    """M4: SMAC BlackBox / Bayesian Optimization (Gaussian Process + EI)."""
+    log.info("▶ M4 — SMAC BlackBox (GP+EI / BO)  [n_trials=%d, n_corridas=%d]",
              n_trials, n_corridas)
     import modulo4_smac_v2 as m4
     res = m4.optimizar(
-        tipo             = "hpo",
+        tipo             = "blackbox",
         n_trials         = n_trials,
         n_corridas_eval  = n_corridas,
         seed             = seed,
@@ -252,6 +252,38 @@ def run_m4_blackbox(n_trials: int = 30, n_corridas: int = 2, seed: int = 42,
     conv_time = _tiempos_smac(res.historia_costos, res.tiempo_seg)
     return {
         "modulo":           "M4",
+        "algoritmo":        "SMAC BlackBox (GP+EI)",
+        "costo_incumbente": res.costo_incumbente,
+        "tiempo_seg":       res.tiempo_seg,
+        "n_evaluaciones":   len(res.historia_costos) * n_corridas,
+        "incumbente":       _incumbente_a_dict(res.incumbente),
+        "conv_eval":        conv_eval,
+        "conv_time":        conv_time,
+    }
+
+
+def run_m4rf_hpo(n_trials: int = 30, n_corridas: int = 2, seed: int = 42,
+                 pesos_kpi: dict = None) -> dict:
+    """M4RF: SMAC con surrogado Random Forest (HPO facade: RF + EI + Sobol).
+
+    Módulo separado para comparar contra M4 (SMAC BO/GP)."""
+    log.info("▶ M4RF — SMAC RF (Random Forest + EI)  [n_trials=%d, n_corridas=%d]",
+             n_trials, n_corridas)
+    import modulo4_smac_v2 as m4
+    res = m4.optimizar(
+        tipo             = "hpo",
+        n_trials         = n_trials,
+        n_corridas_eval  = n_corridas,
+        seed             = seed,
+        objetivo         = "compuesto" if pesos_kpi else "tts_full_days_mean",
+        pesos_kpi        = pesos_kpi,
+        guardar_json     = "resultado_comparativa_m4rf.json",
+        output_dir       = "smac_comp_m4rf",
+    )
+    conv_eval = _convergencia_smac(res.historia_costos, n_corridas)
+    conv_time = _tiempos_smac(res.historia_costos, res.tiempo_seg)
+    return {
+        "modulo":           "M4RF",
         "algoritmo":        "SMAC RF (Random Forest + EI)",
         "costo_incumbente": res.costo_incumbente,
         "tiempo_seg":       res.tiempo_seg,
@@ -542,6 +574,7 @@ def _tiempos_smac(historia_costos: list, tiempo_total: float) -> list:
 
 _RUNNERS = {
     "M4":  run_m4_blackbox,
+    "M4RF": run_m4rf_hpo,
     "M7":  run_m7_sk,
     "M8":  run_m8_sk_adaptativo,
     "M9":  run_m9_revi,

@@ -36,7 +36,8 @@ import matplotlib.pyplot as plt
 # Metadatos
 # ──────────────────────────────────────────────────────────────────────────────
 ESTILO = {
-    "M4":  {"label": "SMAC-GP+EI",   "color": "#1f77b4", "ls": "-",  "marker": "o"},
+    "M4":  {"label": "SMAC-BO (GP+EI)","color": "#1f77b4", "ls": "-",  "marker": "o"},
+    "M4RF":{"label": "SMAC-RF+EI",    "color": "#1fa1d6", "ls": "-",  "marker": "o"},
     "M7":  {"label": "SMAC+SK (EI)", "color": "#ff7f0e", "ls": "-",  "marker": "s"},
     "M8":  {"label": "SK Adaptativo","color": "#2ca02c", "ls": "--", "marker": "D"},
     "M10": {"label": "SK-KGCP",      "color": "#9467bd", "ls": "-.", "marker": "^"},
@@ -44,7 +45,7 @@ ESTILO = {
     "M13": {"label": "SPSA",         "color": "#7f7f7f", "ls": ":",  "marker": "x"},
     "RS":  {"label": "Random Search","color": "#17becf", "ls": "--", "marker": "P"},
 }
-ORDEN = ["M4", "M7", "M8", "M10", "M11", "M13", "RS"]
+ORDEN = ["M4", "M4RF", "M7", "M8", "M10", "M11", "M13", "RS"]
 
 # Variables de decisión: (default/baseline, lower, upper, tipo)
 VARIABLES = {

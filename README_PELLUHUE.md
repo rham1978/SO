@@ -1,10 +1,13 @@
 # Cómo correr la comparativa mañana (Pelluhue)
 
-Todo queda listo en esta rama. Los dos módulos pedidos ya están integrados en la
-comparativa del benchmark:
+Todo queda listo en esta rama. La comparativa ahora distingue **los dos surrogados
+de SMAC por separado** y suma ASTRO-DF:
 
-- **M4 = SMAC con Random Forest** (HPO facade: RF + EI + Sobol) — antes era GP.
+- **M4 = SMAC BO** (Bayesian Optimization, Gaussian Process + EI) — el que ya tenías.
+- **M4RF = SMAC con Random Forest** (HPO facade: RF + EI + Sobol) — **nuevo, aparte**.
 - **M11 = ASTRO-DF** (trust-region con muestreo adaptativo).
+
+Así puedes comparar directamente BO (GP) vs RF dentro de SMAC, más el resto de métodos.
 
 ## 1. Preparar entorno (una sola vez)
 
@@ -24,7 +27,7 @@ nohup bash run_comparativa_pelluhue.sh > comparativa_pelluhue.log 2>&1 &
 tail -f comparativa_pelluhue.log
 ```
 
-Esto corre el benchmark con `M4 M7 M8 M10 M11 M13 RS`, reevalúa cada incumbente
+Esto corre el benchmark con `M4 M4RF M7 M8 M10 M11 M13 RS`, reevalúa cada incumbente
 (r=50) y al final genera análisis + gráficas automáticamente.
 
 ### Variantes útiles

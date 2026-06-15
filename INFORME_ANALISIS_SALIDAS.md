@@ -110,9 +110,11 @@ más bajo al final del presupuesto (su banda inferior es la mejor a 150 evals).
 - **Re-correr ASTRO-DF (M11):** no estaba en este lote (`pipeline.log` lo excluyó del Paso 3).
   Script nuevo `run_m11_rerun.py` (52 semanas, paralelizado). Ver estado en
   `pipeline_out/m11_rerun/`.
-- **Ajustar SMAC para RF (Random Forest):** el runner M4 usaba `tipo="blackbox"`
-  (Gaussian Process). Cambiado a `tipo="hpo"` → **HyperparameterOptimizationFacade
-  (Random Forest + EI + Sobol)** en `modulo_comparativa_caja_negra.py`; etiqueta del benchmark
-  actualizada a `SMAC-RF+EI`. Validado de extremo a extremo (la fachada RF construye y optimiza).
-  Requiere `scikit-learn==1.6.1` (ver `requirements_analisis.txt`); con sklearn ≥1.7 el modelo
-  RF de SMAC 2.4 falla al importar (`DTYPE` / `validate_data`).
+- **SMAC con RF como módulo aparte (no reemplaza al BO):** se mantiene **M4 = SMAC BlackBox /
+  Bayesian Optimization (GP + EI)** y se añade **M4RF = SMAC con Random Forest** (HPO facade:
+  RF + EI + Sobol, `tipo="hpo"`) como módulo independiente en `modulo_comparativa_caja_negra.py`
+  (`run_m4rf_hpo`, clave `M4RF` en `_RUNNERS`). En `benchmark_riguroso.py` se agregó `M4RF` a
+  `FAMILIA_SMAC`, a los módulos por defecto y al diccionario de estilos (`SMAC-RF+EI`). Así la
+  comparativa enfrenta directamente **BO (GP) vs RF** dentro de SMAC. Validado end-to-end (la
+  fachada RF construye y optimiza). Requiere `scikit-learn==1.6.1` (ver `requirements_analisis.txt`);
+  con sklearn ≥1.7 el modelo RF de SMAC 2.4 falla al importar (`DTYPE` / `validate_data`).
