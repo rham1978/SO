@@ -234,12 +234,12 @@ def _tiempos_convergencia(historia_costos: list):
 
 def run_m4_blackbox(n_trials: int = 30, n_corridas: int = 2, seed: int = 42,
                     pesos_kpi: dict = None) -> dict:
-    """M4: SMAC BlackBox (Gaussian Process + EI)."""
-    log.info("▶ M4 — SMAC BlackBox (GP+EI)  [n_trials=%d, n_corridas=%d]",
+    """M4: SMAC con surrogado Random Forest (HPO facade: RF + EI + Sobol)."""
+    log.info("▶ M4 — SMAC RF (Random Forest + EI)  [n_trials=%d, n_corridas=%d]",
              n_trials, n_corridas)
     import modulo4_smac_v2 as m4
     res = m4.optimizar(
-        tipo             = "blackbox",
+        tipo             = "hpo",
         n_trials         = n_trials,
         n_corridas_eval  = n_corridas,
         seed             = seed,
@@ -252,7 +252,7 @@ def run_m4_blackbox(n_trials: int = 30, n_corridas: int = 2, seed: int = 42,
     conv_time = _tiempos_smac(res.historia_costos, res.tiempo_seg)
     return {
         "modulo":           "M4",
-        "algoritmo":        "SMAC BlackBox (GP+EI)",
+        "algoritmo":        "SMAC RF (Random Forest + EI)",
         "costo_incumbente": res.costo_incumbente,
         "tiempo_seg":       res.tiempo_seg,
         "n_evaluaciones":   len(res.historia_costos) * n_corridas,
