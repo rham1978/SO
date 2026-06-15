@@ -44,21 +44,25 @@ N_CORES="${N_CORES:-$(( $(nproc) > 1 ? $(nproc) - 1 : 1 ))}"
 MAX_H="${MAX_H:-24}"
 OUT="${OUT:-pipeline_out/resultados_rf_astrodf}"
 
-# λ: usa el calibrado si existe, si no 0.082
-if [[ -z "${LAMBDA:-}" ]]; then
-    if [[ -f pipeline_out/calibracion/lambdas.json ]]; then
-        LAMBDA=$($PY -c "import json;print(f\"{json.load(open('pipeline_out/calibracion/lambdas.json'))['lambdas']['lambda_med']:.6f}\")")
-    else
-        LAMBDA="0.082"
-    fi
+# Objetivo: por DEFECTO TTS puro (tiempo medio en sistema, días) — igual que el
+# lote de resultados existente, para que la comparación sea homogénea.
+# El objetivo compuesto (f = TTS − λ·atenciones) queda DESACTIVADO salvo que
+# exportes explícitamente LAMBDA (p.ej. LAMBDA=0.082). Ojo: si lo activas, los
+# resultados quedan en otra escala y NO son comparables con el lote TTS actual.
+LAMBDA_ARG=""
+OBJ_DESC="TTS puro (tiempo medio en sistema, días)"
+if [[ -n "${LAMBDA:-}" ]]; then
+    LAMBDA_ARG="--lambda_obj $LAMBDA"
+    OBJ_DESC="COMPUESTO f = TTS − ${LAMBDA}·atenciones  (¡escala distinta!)"
 fi
 
 echo "============================================================"
 echo "COMPARATIVA — Pelluhue — $(date)"
 echo "  Módulos : $MODULOS"
 echo "  M4 = SMAC BO (GP+EI) | M4RF = SMAC Random Forest | M11 = ASTRO-DF"
+echo "  Objetivo: $OBJ_DESC"
 echo "  n_seeds=$N_SEEDS  n_trials=$N_TRIALS  r_final=$R_FINAL"
-echo "  n_cores=$N_CORES  lambda=$LAMBDA  max_seed_horas=$MAX_H"
+echo "  n_cores=$N_CORES  max_seed_horas=$MAX_H"
 echo "  salida  : $OUT"
 echo "============================================================"
 
@@ -94,7 +98,7 @@ $PY benchmark_riguroso.py \
     --n_trials "$N_TRIALS" \
     --r_final "$R_FINAL" \
     --n_cores "$N_CORES" \
-    --lambda_obj "$LAMBDA" \
+    $LAMBDA_ARG \
     --max_seed_horas "$MAX_H" \
     --resume \
     --out "$OUT"

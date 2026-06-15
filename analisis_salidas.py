@@ -16,7 +16,8 @@ Genera:
         - mapa de movimiento de variables (incumbente normalizado vs baseline)
 
 Función objetivo (minimizar):
-        f(x) = TTS_full_days_mean(x) - λ · total_atenciones(x),   λ = 0.082
+        TTS_full_days_mean(x) = tiempo medio TOTAL EN SISTEMA (días),
+        de entrada a alta, sobre pacientes que completan la ruta. Se MINIMIZA.
 
 Uso:
     python analisis_salidas.py --res pipeline_out/resultados --out analisis_out
@@ -62,7 +63,7 @@ VARIABLES = {
     "pct_no_contactabilidad":     (0.30, 0.05, 0.50, "float"),
     "pct_bloqueo_post_control":   (0.34, 0.05, 0.50, "float"),
 }
-LAMBDA = 0.082
+OBJETIVO = "tts_full_days_mean (tiempo medio en sistema, días)"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -142,7 +143,7 @@ def tabla_resumen(data):
 
 def imprimir_tabla(filas):
     print("\n" + "=" * 104)
-    print("RESUMEN POR MÉTODO  —  objetivo f(x)=TTS(d) - λ·atenciones (minimizar; menor=mejor)")
+    print("RESUMEN POR MÉTODO  —  objetivo: TTS = tiempo medio en sistema [días] (minimizar)")
     print("=" * 104)
     hdr = (f"{'Método':<16}{'seeds':>6}{'costo_opt μ±σ':>20}"
            f"{'reeval μ (IC honesto)':>24}{'mejor':>9}{'tiempo[h]':>11}{'n_eval':>9}")
@@ -269,7 +270,7 @@ def graf_convergencia_eval(data, out):
                  ls=ESTILO[mod]["ls"])
         plt.fill_between(grid, mu - sd, mu + sd, color=c, alpha=0.12)
     plt.xlabel("Evaluaciones del simulador")
-    plt.ylabel("Mejor objetivo f(x)  (menor = mejor)")
+    plt.ylabel("Mejor TTS — tiempo medio en sistema [días]  (menor = mejor)")
     plt.title("Convergencia por evaluaciones (media ± σ entre seeds)")
     plt.legend(fontsize=9)
     plt.grid(alpha=0.3)
@@ -297,7 +298,7 @@ def graf_convergencia_tiempo(data, out):
         plt.plot(grid, mu, color=c, lw=2, label=label(mod), ls=ESTILO[mod]["ls"])
         plt.fill_between(grid, mu - sd, mu + sd, color=c, alpha=0.12)
     plt.xlabel("Tiempo de ejecución [horas]")
-    plt.ylabel("Mejor objetivo f(x)  (menor = mejor)")
+    plt.ylabel("Mejor TTS — tiempo medio en sistema [días]  (menor = mejor)")
     plt.title("Convergencia por tiempo de cómputo (media ± σ entre seeds)")
     plt.legend(fontsize=9)
     plt.grid(alpha=0.3)
@@ -338,7 +339,7 @@ def graf_box_objetivo(data, out):
     for patch, m in zip(bp["boxes"], mods):
         patch.set_facecolor(color(m))
         patch.set_alpha(0.55)
-    plt.ylabel("Objetivo reevaluado f(x)  (menor = mejor)")
+    plt.ylabel("TTS reevaluado — tiempo medio en sistema [días]  (menor = mejor)")
     plt.title("Objetivo alcanzado por método (reevaluación honesta, r=50)")
     plt.xticks(rotation=20)
     plt.grid(alpha=0.3, axis="y")
@@ -419,8 +420,7 @@ def main():
 
     # exportar resumen a JSON
     resumen = {
-        "objetivo": "f(x)=TTS_full_days_mean - lambda*total_atenciones",
-        "lambda": LAMBDA,
+        "objetivo": "tts_full_days_mean = tiempo medio en sistema (dias)",
         "ranking_reeval": [
             {"modulo": f["mod"], "label": f["label"], "reeval_media": f["re_med"],
              "reeval_mejor": f["re_best"], "costo_opt_media": f["costo_med"],
