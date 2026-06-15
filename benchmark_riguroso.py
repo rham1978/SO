@@ -81,7 +81,7 @@ log = logging.getLogger("benchmark_riguroso")
 # Colores/estilos por módulo (igual que en comparativa)
 ESTILO = {
     "M4":  {"label": "M1 SMAC-BO (GP+EI)","color": "#1f77b4", "ls": "-",  "marker": "o"},
-    "M4RF":{"label": "SMAC-RF+EI",       "color": "#1fa1d6", "ls": "-",  "marker": "o"},
+    "M4RF":{"label": "SMAC-RF (RF+EI)",  "color": "#d62728", "ls": "--", "marker": "*"},
     "M7":  {"label": "M2 SMAC+SK (EI)",  "color": "#ff7f0e", "ls": "-",  "marker": "s"},
     "M8":  {"label": "M3 SK Adaptativo", "color": "#2ca02c", "ls": "--", "marker": "D"},
     "M9":  {"label": "SK-REVI",          "color": "#d62728", "ls": "--", "marker": "v"},

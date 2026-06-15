@@ -37,7 +37,7 @@ import matplotlib.pyplot as plt
 # ──────────────────────────────────────────────────────────────────────────────
 ESTILO = {
     "M4":  {"label": "SMAC-BO (GP+EI)","color": "#1f77b4", "ls": "-",  "marker": "o"},
-    "M4RF":{"label": "SMAC-RF+EI",    "color": "#1fa1d6", "ls": "-",  "marker": "o"},
+    "M4RF":{"label": "SMAC-RF (RF+EI)","color": "#d62728", "ls": "--", "marker": "*"},
     "M7":  {"label": "SMAC+SK (EI)", "color": "#ff7f0e", "ls": "-",  "marker": "s"},
     "M8":  {"label": "SK Adaptativo","color": "#2ca02c", "ls": "--", "marker": "D"},
     "M10": {"label": "SK-KGCP",      "color": "#9467bd", "ls": "-.", "marker": "^"},
