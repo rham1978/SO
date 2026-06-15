@@ -55,13 +55,14 @@ def aplicar_incumbente(cfg, inc):
 #     NO 'fixed_post_control_hours' (que modulo3 setea pero el sim ignora).
 #
 #   "Diagnostic resources" — US = ECOGRAFÍA, slots = LABORATORIO (confirmado).
-#   El '+' se interpreta como INCREMENTO sobre la base (si fuese absoluto, el
-#   lab de v2 '50' quedaría por debajo de la base 54, lo que no tiene sentido
-#   en un escenario que agrega capacidad):
-#     · "2 mid."     → matrona_capacity = 2
-#     · "+25 US"     → mat_us_per_week = 25(base) + 25 = 50   (ecografía matrona)
-#     · "+50 slots"  → ugd_lab_per_week = 54(base) + 50 = 104 (laboratorio UGD)
+#   Valores ABSOLUTOS (confirmado por el usuario):
+#     · "2 mid."       → matrona_capacity = 2
+#     · Mgmt+Cap  US   → cupos ecografía = 25  (mat_us_per_week = 25)
+#     · Mgmt+Cap v2    → 50 cupos ecografía y 50 cupos laboratorio
+#                        (mat_us_per_week = 50, ugd_lab_per_week = 50)
 #   'Base' = PARAM_BASELINE (lab 54, eco 25/25, matronas 1).
+#   La ecografía se aplica a la capacidad de matrona (mat_us_per_week); si se
+#   quisiera también la ecografía UGD, ajustar ugd_us_per_week.
 #   pct_no_contactabilidad no está en la tabla → queda en base 0.15 (PARAM_BASELINE).
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -77,18 +78,18 @@ def escenarios_manuales(CFG):
                            use_fixed_post_control_hours=True, fixed_post_control_capacity=40,
                            blocked_pct=0.10, publish_lead_workdays=7, agent_capacity=1,
                            blocked_pct_post_control=0.10, empty_control_p_ugd=0.10),
-        # Mgmt+Cap = +cap 1ra(30) + 2 agentes + 2 matronas + 25 US (eco 25→50)
+        # Mgmt+Cap = cap 1ra(30) + 2 agentes + 2 matronas + eco 25 (absoluto)
         "Mgmt+Cap": dict(use_fixed_weekly_capacity=True,  fixed_weekly_capacity=30,
                          use_fixed_post_control_hours=True, fixed_post_control_capacity=40,
                          blocked_pct=0.10, publish_lead_workdays=7, agent_capacity=2,
                          blocked_pct_post_control=0.10, empty_control_p_ugd=0.10,
-                         matrona_capacity=2, mat_us_per_week=50),
-        # Mgmt+Cap v2 = +cap 1ra(40) + 3 agentes + postFC 50 + 2 matronas + 50 slots lab (54→104)
+                         matrona_capacity=2, mat_us_per_week=25),
+        # Mgmt+Cap v2 = cap 1ra(40) + 3 agentes + postFC 50 + 2 matronas + eco 50 + lab 50 (absoluto)
         "Mgmt+Cap v2": dict(use_fixed_weekly_capacity=True,  fixed_weekly_capacity=40,
                             use_fixed_post_control_hours=True, fixed_post_control_capacity=50,
                             blocked_pct=0.10, publish_lead_workdays=7, agent_capacity=3,
                             blocked_pct_post_control=0.10, empty_control_p_ugd=0.10,
-                            matrona_capacity=2, ugd_lab_per_week=104),
+                            matrona_capacity=2, mat_us_per_week=50, ugd_lab_per_week=50),
     }
 
 # ──────────────────────────────────────────────────────────────────────────────
