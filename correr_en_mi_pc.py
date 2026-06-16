@@ -21,11 +21,11 @@ REQUISITOS
   - Tener tus resultados previos en la carpeta OUT_RES (M4/M7/M8/M10/M13).
 
 USO
-  python correr_en_mi_pc.py                 # corre todo (pasos 1,2,3)
-  python correr_en_mi_pc.py --pasos 3       # solo la comparación manual vs óptimo
-  python correr_en_mi_pc.py --pasos 1 3     # benchmark + comparación
-  python correr_en_mi_pc.py --con-modulo1   # incluye también el PASO 4
-  python correr_en_mi_pc.py --r 10          # comparación más rápida (preview)
+  python correr_en_mi_pc.py                 # TODO: benchmark M4RF+M11 → comparar → PPT
+  python correr_en_mi_pc.py --pasos 3 5     # solo comparación + PPT (usa resultados ya hechos)
+  python correr_en_mi_pc.py --pasos 1       # solo generar M4RF+M11 (optimización, horas)
+  python correr_en_mi_pc.py --reeval --r 50 # comparación rápida (modelos del JSON, sin re-simular)
+  python correr_en_mi_pc.py --con-modulo1   # incluye también el PASO 4 (nº de corridas)
 ================================================================================
 """
 import argparse
@@ -42,6 +42,7 @@ os.chdir(DIR)
 # CONFIGURACIÓN (ajústala a tu PC)
 # ──────────────────────────────────────────────────────────────────────────────
 OUT_RES   = "pipeline_out/resultados"        # carpeta con TUS resultados previos
+OUT_CMP   = "comparacion_manual"             # salida de la comparación
 N_SEEDS   = 15                               # macro-réplicas (igual que el lote previo)
 N_TRIALS  = 150                              # presupuesto de evaluaciones por seed
 R_FINAL   = 50                               # réplicas de reevaluación del incumbente
@@ -105,14 +106,24 @@ def paso2_analisis():
         [PY, "analisis_salidas.py", "--res", OUT_RES, "--out", "analisis_out"])
 
 
-def paso3_comparar(r):
-    run("PASO 3 — Comparación manual vs óptimo (μ±σ, IC95, ANOVA, decisión)",
-        [PY, "comparar_manual_vs_optimo.py",
-         "--res", OUT_RES,
-         "--r", str(r),
-         "--timeout", str(TIMEOUT_S),
-         "--n_workers", str(N_WORKERS),
-         "--out", "comparacion_manual"])
+def paso3_comparar(r, reeval=False):
+    cmd = [PY, "comparar_manual_vs_optimo.py",
+           "--res", OUT_RES,
+           "--r", str(r),
+           "--timeout", str(TIMEOUT_S),
+           "--n_workers", str(N_WORKERS),
+           "--out", OUT_CMP]
+    if reeval:
+        cmd.append("--usar-reeval-modulos")
+    modo = "reeval (rápido)" if reeval else "CRN (re-simula todo)"
+    run(f"PASO 3 — Comparación manual vs óptimo [{modo}]", cmd)
+
+
+def paso5_ppt():
+    run("PASO 5 — Reporte PPTX (inglés)",
+        [PY, "generar_reporte_ppt.py",
+         "--json", os.path.join(OUT_CMP, "comparacion_manual.json"),
+         "--out", "report_comparison.pptx"])
 
 
 def paso4_modulo1():
@@ -123,10 +134,14 @@ def paso4_modulo1():
 
 def main():
     ap = argparse.ArgumentParser(description="Orquestador para correr en PC personal.")
-    ap.add_argument("--pasos", nargs="*", type=int, default=[1, 2, 3],
-                    help="pasos a ejecutar (def: 1 2 3). Ej: --pasos 3")
+    ap.add_argument("--pasos", nargs="*", type=int, default=[1, 2, 3, 5],
+                    help="pasos a ejecutar (def: 1 2 3 5). "
+                         "1=benchmark M4RF+M11, 2=análisis, 3=comparación, 4=MÓDULO 1, 5=PPT.")
     ap.add_argument("--con-modulo1", action="store_true",
                     help="ejecuta también el PASO 4 (MÓDULO 1).")
+    ap.add_argument("--reeval", action="store_true",
+                    help="comparación rápida: usa el TTS guardado de los módulos "
+                         "(no re-simula). Para modelos NUEVOS usa CRN (sin este flag).")
     ap.add_argument("--r", type=int, default=R_COMPARA,
                     help=f"réplicas en la comparación (def {R_COMPARA}; usa 10 para preview).")
     args = ap.parse_args()
@@ -135,7 +150,8 @@ def main():
     print("ORQUESTADOR — PC personal")
     print(f"  núcleos detectados: {os.cpu_count()}  →  n_workers={N_WORKERS}")
     print(f"  resultados en: {OUT_RES}")
-    print(f"  pasos: {args.pasos}{'  + MÓDULO 1' if args.con_modulo1 else ''}")
+    print(f"  pasos: {args.pasos}{'  + MÓDULO 1' if args.con_modulo1 else ''}"
+          f"  | comparación: {'reeval' if args.reeval else 'CRN'}")
     print("=" * 78)
 
     chequear_deps()
@@ -144,15 +160,18 @@ def main():
     if 2 in args.pasos:
         paso2_analisis()
     if 3 in args.pasos:
-        paso3_comparar(args.r)
+        paso3_comparar(args.r, reeval=args.reeval)
     if args.con_modulo1 or 4 in args.pasos:
         paso4_modulo1()
+    if 5 in args.pasos:
+        paso5_ppt()
 
     print("\n" + "=" * 78)
     print("LISTO. Salidas:")
     print(f"  {OUT_RES}/                 ← JSON por módulo/seed (incluye M4RF, M11)")
     print( "  analisis_out/             ← tablas + convergencia + movimiento de variables")
-    print( "  comparacion_manual/       ← manual vs óptimo (tabla, ANOVA, decisión, Pareto)")
+    print(f"  {OUT_CMP}/       ← manual vs óptimo (tabla, ANOVA, decisión, Pareto)")
+    print( "  report_comparison.pptx    ← reporte PPTX (inglés)")
     print("=" * 78)
 
 
