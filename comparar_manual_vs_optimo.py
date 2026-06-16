@@ -271,6 +271,64 @@ def analisis_varianza(filas):
     }
 
 
+def recomendacion_negocio(filas):
+    """Traduce la comparación estadística en una decisión de negocio.
+    Ejes: TTS (espera, minimizar) vs atenciones (throughput, maximizar) vs Current."""
+    stats_x = {}
+    for nombre, tipo, tts, at in filas:
+        v = tts[np.isfinite(tts)]; a = at[np.isfinite(at)]
+        stats_x[nombre] = (tipo, float(v.mean()), float(v.std(ddof=1)) if len(v) > 1 else 0.0,
+                           float(a.mean()), v)
+    if "Current" not in stats_x:
+        return {}
+    cur_tts, cur_at, cur_v = stats_x["Current"][1], stats_x["Current"][3], stats_x["Current"][4]
+
+    # frontera de Pareto (menor TTS y mayor atenciones; no dominado)
+    nombres = list(stats_x)
+    def domina(b, x):  # b domina a x si <= TTS y >= atenc y estricto en uno
+        tb, _, _, ab, _ = (stats_x[b][0],) + stats_x[b][1:]
+        tx, ax = stats_x[x][1], stats_x[x][3]
+        return (stats_x[b][1] <= tx and stats_x[b][3] >= ax and
+                (stats_x[b][1] < tx or stats_x[b][3] > ax))
+    pareto = [n for n in nombres if not any(domina(b, n) for b in nombres if b != n)]
+
+    mejor_tts = min(nombres, key=lambda n: stats_x[n][1])
+    mejor_thr = max(nombres, key=lambda n: stats_x[n][3])
+
+    print("\n" + "="*100)
+    print("DECISIÓN DE NEGOCIO — para el tomador de decisiones")
+    print("="*100)
+    print(f"Situación actual (Current): espera media {cur_tts:.0f} días, "
+          f"{cur_at:.0f} pacientes atendidos.\n")
+    print("Opciones (vs Current), ordenadas por menor espera:")
+    print(f"  {'Opción':16}{'espera [d]':12}{'Δespera':16}{'atendidos':12}{'Δatendidos':14}{'¿signif.?':10}")
+    print("  " + "-"*88)
+    for n in sorted(nombres, key=lambda n: stats_x[n][1]):
+        tipo, m, sd, am, v = stats_x[n]
+        dt = m - cur_tts; dtp = 100*dt/cur_tts
+        da = am - cur_at; dap = 100*da/cur_at if cur_at else 0
+        if n == "Current":
+            sig = "—"
+        else:
+            try: p = stats.ttest_ind(v, cur_v, equal_var=False).pvalue
+            except Exception: p = float("nan")
+            sig = ("sí" if (np.isfinite(p) and p < 0.05) else "no")
+        tag = " ★Pareto" if n in pareto else ""
+        print(f"  {n:16}{m:<12.0f}{f'{dt:+.0f}d ({dtp:+.0f}%)':16}"
+              f"{am:<12.0f}{f'{da:+.0f} ({dap:+.0f}%)':14}{sig:10}{tag}")
+    print("  " + "-"*88)
+    print(f"\n  ▸ Menor espera        : {mejor_tts}  ({stats_x[mejor_tts][1]:.0f} d)")
+    print(f"  ▸ Mayor throughput    : {mejor_thr}  ({stats_x[mejor_thr][3]:.0f} atendidos)")
+    print(f"  ▸ Frontera de Pareto  : {', '.join(pareto)}")
+    print( "    (las opciones Pareto no son dominadas: ninguna otra mejora espera Y atenciones a la vez)")
+    print("\n  Recomendación: elegir dentro de la frontera de Pareto según prioridad —")
+    print("  si la prioridad es reducir la espera del paciente, conviene la de menor TTS")
+    print("  con diferencia significativa; si es atender a más pacientes, la de mayor throughput.")
+    print("="*100)
+    return {"current": {"tts": cur_tts, "atenciones": cur_at},
+            "menor_tts": mejor_tts, "mayor_throughput": mejor_thr, "pareto": pareto}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--res", default="pipeline_out/resultados")
@@ -317,29 +375,42 @@ def main():
         print(f"[optimo] {m:14} TTS={np.nanmean(tts):7.1f}d  "
               f"atenciones={np.nanmean(at):7.0f}{aviso}", flush=True)
 
-    # 3) tabla + test pareado vs Current
+    # 3) tabla μ ± σ + Welch t vs Current (mismo método que la tabla manual)
     cur = next(f for f in filas if f[0] == "Current")[2]
-    print("\n" + "="*92)
-    print(f"{'Escenario':16}{'TTS μ [IC95]':26}{'atenciones μ':14}{'ΔTTS vs Current':18}{'p (Wilcoxon)':12}")
-    print("-"*92)
+    cur_v = cur[np.isfinite(cur)]
+    print("\n" + "="*100)
+    print("RESUMEN — TTS = tiempo medio en sistema [días]  (μ ± σ; menor = mejor)")
+    print("="*100)
+    print(f"{'Escenario':16}{'tipo':8}{'TTS μ ± σ':20}{'atenc. μ':12}"
+          f"{'ΔTTS vs Cur':14}{'p Welch':12}{'veredicto':12}")
+    print("-"*100)
     salida = []
     for nombre, tipo, tts, at in filas:
-        m, s, lo, hi = _ic(tts)
+        v = tts[np.isfinite(tts)]
+        m, sd = float(v.mean()), float(v.std(ddof=1)) if len(v) > 1 else 0.0
         am = float(np.nanmean(at))
-        d = m - float(np.nanmean(cur))
+        d = m - float(cur_v.mean())
         if nombre == "Current":
-            p = float("nan")
+            p, vere = float("nan"), "—"
         else:
-            # pareado solo sobre réplicas válidas en AMBOS (CRN)
-            mask = np.isfinite(tts) & np.isfinite(cur)
-            try: p = stats.wilcoxon(tts[mask], cur[mask]).pvalue
+            try: p = stats.ttest_ind(v, cur_v, equal_var=False).pvalue
             except Exception: p = float("nan")
-        print(f"{nombre:16}{f'{m:.1f} [{lo:.1f},{hi:.1f}]':26}{am:<14.0f}"
-              f"{d:+.1f}{'':10}{p:.4f}")
-        salida.append({"escenario": nombre, "tipo": tipo, "tts_media": m,
-                       "tts_ic95": [lo, hi], "atenciones_media": am,
-                       "delta_tts_vs_current": d, "p_wilcoxon_vs_current": p})
-    print("="*92)
+            if np.isfinite(p) and p < 0.05:
+                vere = "MEJOR" if m < cur_v.mean() else "PEOR"
+            else:
+                vere = "≈ igual"
+        print(f"{nombre:16}{tipo:8}{f'{m:6.1f} ± {sd:4.1f}':20}{am:<12.0f}"
+              f"{d:+8.1f}{'':6}{p:<12.4f}{vere:12}")
+        salida.append({"escenario": nombre, "tipo": tipo,
+                       "tts_media": m, "tts_sd": sd, "atenciones_media": am,
+                       "delta_tts_vs_current": d, "p_welch_vs_current": p,
+                       "tts_raw": [float(x) for x in v],
+                       "atenciones_raw": [float(x) for x in at[np.isfinite(at)]]})
+    print("="*100)
+    print("Nota: 'MEJOR/PEOR' = diferencia significativa vs Current (Welch t, p<0.05).")
+
+    # 3b) análisis de varianza (omnibus + post-hoc, robusto a heterocedasticidad)
+    av = analisis_varianza(filas)
 
     # 4) Pareto TTS vs atenciones
     plt.figure(figsize=(9, 6))
@@ -360,7 +431,11 @@ def main():
     png = os.path.join(args.out, "pareto_tts_atenciones.png")
     plt.savefig(png, dpi=140); plt.close()
 
-    json.dump(salida, open(os.path.join(args.out, "comparacion_manual.json"), "w"),
+    # 5) recomendación de negocio
+    rec = recomendacion_negocio(filas)
+
+    json.dump({"escenarios": salida, "analisis_varianza": av, "recomendacion": rec},
+              open(os.path.join(args.out, "comparacion_manual.json"), "w"),
               indent=2, ensure_ascii=False)
     print(f"\nGráfica: {png}")
     print(f"JSON   : {os.path.join(args.out, 'comparacion_manual.json')}")
