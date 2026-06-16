@@ -31,9 +31,9 @@ NAMES = {
     "M13": "SPSA (Simultaneous Perturbation Stochastic Approximation)",
     "RS":  "Random Search",
 }
-# Short algorithm names (for figures/tables)
+# Short algorithm names (for figures/tables) — aligned with the LaTeX benchmark table
 SHORT = {
-    "M4": "Bayesian Opt (GP)", "M4RF": "SMAC-RF", "M8": "Adaptive SK",
+    "M4": "SMAC-GP+EI", "M4RF": "SMAC-RF", "M8": "SK-Adaptive",
     "M10": "SK-KGCP", "M11": "ASTRO-DF", "M13": "SPSA", "RS": "Random Search",
 }
 # Decision variables: (min, max, type, English label)
