@@ -1,0 +1,9 @@
+Tipo,Método,TTS media,TTS SD,Pacientes media,Pacientes SD,n
+Manual,Current,319.5,5.3,1084,37.0,10
+Manual,Management,243.3,6.1,1618,25.0,10
+Manual,Mgmt + Capacity,245.2,2.6,2460,38.0,10
+Manual,Mgmt + Capacity v2,255.0,3.7,2486,34.4,10
+Algoritmo,Random Search,197.1,4.5,2061,67.2,10
+Algoritmo,SPSA,200.4,3.9,2037,56.0,10
+Algoritmo,ASTRO-DF,201.7,0.0,2388,0.0,1
+Algoritmo,SA (A&A99),230.2,4.9,2079,43.2,10

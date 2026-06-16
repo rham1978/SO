@@ -1,0 +1,23 @@
+\begin{table}[htbp]
+\centering
+\caption{Algorithmic optimization vs manual scenarios.
+         $\Delta$ TTS vs Mgmt+Capacity (best manual). Welch's $t$-test, $n$ seeds.}
+\label{tab:benchmark_vs_manuales}
+\small
+\begin{tabular}{llrrrc}
+\toprule
+\textbf{Type} & \textbf{Method} & \textbf{TTS (days)} & \textbf{Patients} & $\boldsymbol{n}$ \\
+\midrule
+Manual & Current & $319.5\pm5.3$ & $1084\pm37$ & 10 \\
+Manual & Management & $243.3\pm6.1$ & $1618\pm25$ & 10 \\
+Manual & Mgmt + Capacity & $245.2\pm2.6$ & $2460\pm38$ & 10 \\
+Manual & Mgmt + Capacity v2 & $255.0\pm3.7$ & $2486\pm34$ & 10 \\
+\midrule
+Algoritmo & Random Search & $197.1\pm4.5$ & $2061\pm67$ & 10 & $-48.1$ & $p=0.0000$\,*** \\
+Algoritmo & SPSA & $200.4\pm3.9$ & $2037\pm56$ & 10 & $-44.8$ & $p=0.0000$\,*** \\
+Algoritmo & ASTRO-DF & $201.7\pm0.0$ & $2388\pm0$ & 1 & $-43.5$ & n=1 (parcial) \\
+Algoritmo & SA (A&A99) & $230.2\pm4.9$ & $2079\pm43$ & 10 & $-15.0$ & $p=0.0000$\,*** \\
+\bottomrule
+\multicolumn{5}{l}{\scriptsize *** $p<0.001$, ** $p<0.01$, * $p<0.05$, ns $p\geq0.05$ (Welch's $t$-test vs Mgmt+Capacity).}
+\end{tabular}
+\end{table}

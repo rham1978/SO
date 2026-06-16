@@ -1,0 +1,8 @@
+Test Welch: algoritmos vs mejor escenario manual (Mgmt+Cap TTS=245.2)
+
+Algoritmo             TTS media  Δ vs Mgmt+Cap    p-valor  Cohen d    n
+----------------------------------------------------------------------
+Random Search             197.1          -48.1 p=0.0000 ***    13.11   10
+SPSA                      200.4          -44.8 p=0.0000 ***    13.48   10
+ASTRO-DF                  201.7          -43.5 n=1 (parcial)        —    1
+SA (A&A99)                230.2          -15.0 p=0.0000 ***     3.82   10
