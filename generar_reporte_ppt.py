@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Generates a detailed PPTX report of the manual-vs-optimal comparison (TTS),
-in ENGLISH, including each module's full name and how the decision variables
-are distributed over the Pareto.
+Generates a detailed PPTX report (ENGLISH) of the manual-vs-optimal comparison
+on TTS. Modules are shown by ALGORITHM NAME. M7 is excluded.
 
 Usage:
     python generar_reporte_ppt.py --json comparacion_manual/comparacion_manual.json \
@@ -14,22 +13,30 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from scipy import stats
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 
-# ── Full module names ─────────────────────────────────────────────────────────
+# Modules excluded from the report
+EXCLUDE = {"M7"}
+
+# Full method names (for the methods table)
 NAMES = {
     "M4":  "SMAC Black-Box — Bayesian Optimization (Gaussian Process + EI)",
     "M4RF":"SMAC Random Forest (HPO: Random Forest + EI + Sobol)",
-    "M7":  "SMAC + Stochastic Kriging (EI)",
     "M8":  "Adaptive Stochastic Kriging",
     "M10": "Stochastic Kriging — KGCP (Knowledge Gradient for Continuous Parameters)",
     "M11": "ASTRO-DF (Adaptive Sampling Trust-Region Optimization, derivative-free)",
     "M13": "SPSA (Simultaneous Perturbation Stochastic Approximation)",
     "RS":  "Random Search",
 }
-# Decision variables: (min, max, type) for normalization + English label
+# Short algorithm names (for figures/tables)
+SHORT = {
+    "M4": "Bayesian Opt (GP)", "M4RF": "SMAC-RF", "M8": "Adaptive SK",
+    "M10": "SK-KGCP", "M11": "ASTRO-DF", "M13": "SPSA", "RS": "Random Search",
+}
+# Decision variables: (min, max, type, English label)
 VARIABLES = {
     "horas_especialista_1ra":   (8, 30, "int",   "First-consult slots/week"),
     "horas_control_post":       (20, 70, "int",  "Post-control slots/week"),
@@ -44,16 +51,51 @@ VARIABLES = {
     "pct_no_contactabilidad":   (0.05, 0.5, "float", "Non-contactability %"),
     "pct_bloqueo_post_control": (0.05, 0.5, "float", "Post-control blocking %"),
 }
-BLUE, RED = "#1f77b4", "#d62728"
+BLUE, RED, GREEN = "#1f77b4", "#d62728", "#2e7d32"
+
+plt.rcParams.update({
+    "font.size": 12, "axes.titlesize": 13, "axes.labelsize": 12,
+    "xtick.labelsize": 10, "ytick.labelsize": 10,
+    "axes.grid": True, "grid.alpha": 0.25, "axes.edgecolor": "#888888",
+    "figure.dpi": 150, "savefig.dpi": 160, "axes.titleweight": "bold",
+})
+
+
+def modkey(nombre):
+    return nombre.replace("ÓPTIMO", "").strip() if "ÓPTIMO" in nombre else None
 
 
 def disp(nombre):
-    """Display name: 'ÓPTIMO M8' → 'Model M8'."""
-    return nombre.replace("ÓPTIMO", "Model").strip()
+    """Display: 'ÓPTIMO M13' → 'SPSA'; manual names unchanged."""
+    k = modkey(nombre)
+    return SHORT.get(k, k) if k else nombre
 
 
-def color_of(tipo): return BLUE if tipo == "optimo" else RED
-def label_var(v):   return VARIABLES[v][3]
+def color_of(t): return BLUE if t == "optimo" else RED
+def label_var(v): return VARIABLES[v][3]
+
+
+def pareto_set(esc):
+    pts = {x["escenario"]: (x["tts_media"], x["atenciones_media"])
+           for x in esc if np.isfinite(x["atenciones_media"])}
+    names = list(pts)
+    def dom(b, a):
+        tb, ab = pts[b]; ta, aa = pts[a]
+        return tb <= ta and ab >= aa and (tb < ta or ab > aa)
+    return [n for n in names if not any(dom(b, n) for b in names if b != n)]
+
+
+def welch_anova(groups):
+    g = [np.asarray(x, float) for x in groups]
+    g = [x[np.isfinite(x)] for x in g]; g = [x for x in g if len(x) >= 2]
+    k = len(g); n = np.array([len(x) for x in g], float)
+    m = np.array([x.mean() for x in g]); v = np.array([x.var(ddof=1) for x in g])
+    w = n / v; sw = w.sum(); xbar = (w * m).sum() / sw
+    A = (w * (m - xbar) ** 2).sum() / (k - 1)
+    tmp = ((1 - w / sw) ** 2 / (n - 1)).sum()
+    B = 1 + (2 * (k - 2) / (k ** 2 - 1)) * tmp
+    F = A / B; df1 = k - 1; df2 = (k ** 2 - 1) / (3 * tmp)
+    return F, df1, df2, float(stats.f.sf(F, df1, df2))
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -66,98 +108,116 @@ def fig_tts_bars(esc, out):
     lo = [x["tts_media"] - x["tts_ic95"][0] for x in e]
     hi = [x["tts_ic95"][1] - x["tts_media"] for x in e]
     col = [color_of(x["tipo"]) for x in e]
-    plt.figure(figsize=(11, 5.5))
-    plt.bar(nom, m, yerr=[lo, hi], capsize=4, color=col, alpha=0.85,
-            edgecolor="k", linewidth=0.5)
+    fig, ax = plt.subplots(figsize=(11, 5.8))
+    bars = ax.bar(nom, m, yerr=[lo, hi], capsize=5, color=col, alpha=0.9,
+                  edgecolor="white", linewidth=1.2, error_kw={"elinewidth": 1.3})
     for i, v in enumerate(m):
-        plt.text(i, v + max(hi) + 2, f"{v:.0f}", ha="center", fontsize=9)
-    plt.ylabel("TTS — mean time in system [days]  (lower = better)")
-    plt.title("TTS by option (mean ± 95% CI)")
-    plt.xticks(rotation=25, ha="right")
-    plt.grid(axis="y", alpha=0.3)
+        ax.text(i, v + max(hi) + 3, f"{v:.0f}", ha="center", fontsize=10, fontweight="bold")
+    ax.set_ylabel("TTS — mean time in system [days]   (lower = better)")
+    ax.set_title("TTS by option (mean ± 95% CI)")
+    ax.set_ylim(0, max(m) * 1.18)
+    plt.xticks(rotation=22, ha="right")
+    ax.grid(axis="x", visible=False)
     import matplotlib.patches as mp
-    plt.legend(handles=[mp.Patch(color=BLUE, label="Optimal (model)"),
-                        mp.Patch(color=RED, label="Manual")], loc="upper left")
-    plt.tight_layout(); p = os.path.join(out, "fig_tts_bars.png")
-    plt.savefig(p, dpi=150); plt.close(); return p
+    ax.legend(handles=[mp.Patch(color=BLUE, label="Optimal (model)"),
+                       mp.Patch(color=RED, label="Manual")], loc="upper right", framealpha=0.9)
+    fig.tight_layout(); p = os.path.join(out, "fig_tts_bars.png")
+    fig.savefig(p); plt.close(); return p
 
 
-def fig_pareto(esc, out):
-    plt.figure(figsize=(10, 6.5))
+def fig_pareto(esc, pareto, out):
+    from adjustText import adjust_text
+    fig, ax = plt.subplots(figsize=(11, 7))
+    pe = sorted([x for x in esc if x["escenario"] in pareto
+                 and np.isfinite(x["atenciones_media"])],
+                key=lambda x: x["atenciones_media"])
+    if len(pe) > 1:
+        ax.plot([x["atenciones_media"] for x in pe], [x["tts_media"] for x in pe],
+                ls="--", color=GREEN, lw=1.6, alpha=0.6, zorder=1)
+    texts, xs, ys = [], [], []
     for x in esc:
         at = x["atenciones_media"]
         if not np.isfinite(at): continue
         c = color_of(x["tipo"]); mk = "o" if x["tipo"] == "optimo" else "s"
-        plt.scatter(at, x["tts_media"], s=120, marker=mk, color=c, zorder=3,
-                    edgecolor="k", linewidth=0.7)
-        plt.annotate(disp(x["escenario"]), (at, x["tts_media"]), fontsize=9,
-                     xytext=(6, 4), textcoords="offset points")
+        ax.scatter(at, x["tts_media"], s=210, marker=mk, color=c, zorder=3,
+                   edgecolor="white", linewidth=1.4)
+        xs.append(at); ys.append(x["tts_media"])
+        texts.append(ax.text(at, x["tts_media"], f"{disp(x['escenario'])} · {x['tts_media']:.0f} d",
+                             fontsize=9.5, fontweight="bold", color="#222222"))
+    adjust_text(texts, x=xs, y=ys, ax=ax, expand=(1.4, 1.8),
+                arrowprops=dict(arrowstyle="-", color="#999999", lw=0.7))
     import matplotlib.patches as mp
-    plt.legend(handles=[mp.Patch(color=BLUE, label="Optimal (model)"),
-                        mp.Patch(color=RED, label="Manual")])
-    plt.xlabel("Patients served (total attentions)  →  more = better")
-    plt.ylabel("TTS — time in system [days]  ←  less = better")
-    plt.title("Observed results (TTS vs throughput)\n"
-              "Note: only TTS was optimized; throughput is an emergent outcome",
-              fontsize=11)
-    plt.grid(alpha=0.3)
-    plt.annotate("better", xy=(0.97, 0.04), xycoords="axes fraction",
-                 fontsize=11, color="green", ha="right",
-                 bbox=dict(boxstyle="round", fc="honeydew", ec="green"))
-    plt.tight_layout(); p = os.path.join(out, "fig_pareto.png")
-    plt.savefig(p, dpi=150); plt.close(); return p
+    h = [mp.Patch(color=BLUE, label="Optimal (algorithm)"), mp.Patch(color=RED, label="Manual")]
+    if len(pe) > 1:
+        h.append(plt.Line2D([], [], ls="--", color=GREEN, label="non-dominated set (observed)"))
+    ax.legend(handles=h, loc="center right", framealpha=0.92)
+    ax.set_xlabel("Patients served (total attentions)   →   more = better")
+    ax.set_ylabel("TTS — time in system [days]   ←   less = better")
+    ax.set_title("Observed results: TTS vs throughput\n"
+                 "(only TTS was optimized; throughput is an emergent outcome)")
+    # direction hint in an empty area (lower-left)
+    ax.annotate("", xy=(0.16, 0.06), xytext=(0.30, 0.20), xycoords="axes fraction",
+                arrowprops=dict(arrowstyle="->", color=GREEN, lw=2))
+    ax.text(0.31, 0.21, "better", transform=ax.transAxes, color=GREEN,
+            fontsize=12, fontweight="bold")
+    fig.tight_layout(); p = os.path.join(out, "fig_pareto.png")
+    fig.savefig(p); plt.close(); return p
 
 
 def fig_pareto_variables(esc, vd, out):
-    """Pareto colored by 4 key decision variables → how they distribute."""
     keys = ["dias_publicacion", "pct_bloqueo_1ra", "num_agentes_ugd", "horas_control_post"]
-    fig, axes = plt.subplots(2, 2, figsize=(12, 9))
+    fig, axes = plt.subplots(2, 2, figsize=(12.5, 9))
     pts = [(x["escenario"], x["atenciones_media"], x["tts_media"])
            for x in esc if np.isfinite(x["atenciones_media"])]
     for ax, var in zip(axes.ravel(), keys):
-        lo, hi, _, lab = VARIABLES[var]
+        lo, hi, typ, lab = VARIABLES[var]
         xs = [p[1] for p in pts]; ys = [p[2] for p in pts]
         vals = [vd.get(p[0], {}).get(var, np.nan) for p in pts]
-        sc = ax.scatter(xs, ys, c=vals, s=170, cmap="viridis", vmin=lo, vmax=hi,
-                        edgecolor="k", linewidth=0.6, zorder=3)
+        sc = ax.scatter(xs, ys, c=vals, s=240, cmap="viridis", vmin=lo, vmax=hi,
+                        edgecolor="white", linewidth=1.2, zorder=3)
         for (nom, a, t), v in zip(pts, vals):
-            ax.annotate(f"{v:.2f}" if isinstance(v, float) and v < 5 else f"{v:.0f}",
-                        (a, t), fontsize=7, ha="center", va="center", color="white")
-        cb = fig.colorbar(sc, ax=ax, fraction=0.046); cb.set_label(lab, fontsize=8)
+            txt = f"{v:.2f}" if typ == "float" else f"{int(round(v))}"
+            ax.annotate(txt, (a, t), fontsize=7.5, ha="center", va="center",
+                        color="white", fontweight="bold")
+            ax.annotate(disp(nom), (a, t), fontsize=6.5, xytext=(0, 11),
+                        textcoords="offset points", ha="center", color="#333333")
+        cb = fig.colorbar(sc, ax=ax, fraction=0.046, pad=0.02); cb.set_label(lab, fontsize=9)
         ax.set_xlabel("patients served"); ax.set_ylabel("TTS [days]")
-        ax.set_title(f"Pareto colored by: {lab}", fontsize=10)
-        ax.grid(alpha=0.3)
-    fig.suptitle("How decision variables distribute over the Pareto", fontsize=13)
-    fig.tight_layout(rect=[0, 0, 1, 0.97])
+        ax.set_title(lab, fontsize=11)
+    fig.suptitle("How decision variables distribute over the Pareto",
+                 fontsize=14, fontweight="bold")
+    fig.tight_layout(rect=[0, 0, 1, 0.96])
     p = os.path.join(out, "fig_pareto_variables.png")
-    fig.savefig(p, dpi=150); plt.close(); return p
+    fig.savefig(p); plt.close(); return p
 
 
 def fig_parallel(esc, vd, out):
-    """Parallel coordinates of the 12 (normalized) variables per option."""
     options = [x["escenario"] for x in esc]
     tipos = {x["escenario"]: x["tipo"] for x in esc}
     varnames = list(VARIABLES)
-    fig, ax = plt.subplots(figsize=(13, 6.5))
+    fig, ax = plt.subplots(figsize=(13, 6.8))
     xpos = np.arange(len(varnames))
     for nom in options:
-        dd = vd.get(nom, {})
-        ys = []
+        dd = vd.get(nom, {}); ys = []
         for v in varnames:
             lo, hi, _, _ = VARIABLES[v]
             val = dd.get(v)
             ys.append((val - lo) / (hi - lo) if val is not None and hi > lo else np.nan)
-        ax.plot(xpos, ys, marker="o", ms=4, lw=1.8, alpha=0.85, color=color_of(tipos[nom]))
-        ax.annotate(disp(nom), (xpos[-1], ys[-1]), fontsize=7, xytext=(4, 0),
-                    textcoords="offset points", va="center")
+        ax.plot(xpos, ys, marker="o", ms=5, lw=2.0, alpha=0.9, color=color_of(tipos[nom]))
+        ax.annotate(disp(nom), (xpos[-1], ys[-1]), fontsize=8, fontweight="bold",
+                    xytext=(6, 0), textcoords="offset points", va="center",
+                    color=color_of(tipos[nom]))
     ax.set_xticks(xpos)
-    ax.set_xticklabels([label_var(v) for v in varnames], rotation=35, ha="right", fontsize=8)
+    ax.set_xticklabels([label_var(v) for v in varnames], rotation=35, ha="right", fontsize=9)
     ax.set_ylabel("normalized position in admissible range (0 = min, 1 = max)")
-    ax.set_title("Decision variables by option (parallel coordinates)\n"
-                 "blue = optimal (models)   ·   red = manual", fontsize=11)
-    ax.grid(alpha=0.3)
+    ax.set_ylim(-0.05, 1.12)
+    ax.set_title("Decision variables by option (parallel coordinates)")
+    import matplotlib.patches as mp
+    ax.legend(handles=[mp.Patch(color=BLUE, label="Optimal (models)"),
+                       mp.Patch(color=RED, label="Manual")], loc="upper left", framealpha=0.9)
+    fig.subplots_adjust(right=0.86)
     fig.tight_layout(); p = os.path.join(out, "fig_parallel.png")
-    fig.savefig(p, dpi=150); plt.close(); return p
+    fig.savefig(p); plt.close(); return p
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -220,14 +280,30 @@ def main():
     os.makedirs(args.figdir, exist_ok=True)
 
     d = json.load(open(args.json, encoding="utf-8"))
-    esc = d["escenarios"]; av = d["analisis_varianza"]
-    rec = d["recomendacion"]; vd = d["variables_decision"]
+    # exclude M7 (and any EXCLUDE)
+    esc = [x for x in d["escenarios"] if modkey(x["escenario"]) not in EXCLUDE]
+    vd = {k: v for k, v in d["variables_decision"].items() if modkey(k) not in EXCLUDE}
+
+    # recompute omnibus + Pareto + recommendation WITHOUT excluded modules
+    groups = [np.array(x["tts_raw"], float) for x in esc]
+    F, df1, df2, pA = welch_anova(groups)
+    av = {"welch_anova": {"F": F, "df1": df1, "df2": df2, "p": pA},
+          "kruskal_wallis_p": float(stats.kruskal(*groups).pvalue),
+          "levene_p": float(stats.levene(*groups, center="median").pvalue)}
+    pareto = pareto_set(esc)
+    cur = next(x for x in esc if x["escenario"] == "Current")
+    rec = {"current": {"tts": cur["tts_media"], "atenciones": cur["atenciones_media"]},
+           "menor_tts": min(esc, key=lambda x: x["tts_media"])["escenario"],
+           "mayor_throughput": max((x for x in esc if np.isfinite(x["atenciones_media"])),
+                                   key=lambda x: x["atenciones_media"])["escenario"],
+           "pareto": pareto}
+
     n_man = sum(1 for x in esc if x["tipo"] == "manual")
     n_opt = sum(1 for x in esc if x["tipo"] == "optimo")
     n_rep_man = len(esc[0]["tts_raw"])
 
     f_bar = fig_tts_bars(esc, args.figdir)
-    f_par = fig_pareto(esc, args.figdir)
+    f_par = fig_pareto(esc, pareto, args.figdir)
     f_pv  = fig_pareto_variables(esc, vd, args.figdir)
     f_pc  = fig_parallel(esc, vd, args.figdir)
 
@@ -237,43 +313,42 @@ def main():
     # 1) Title
     s = blank(prs)
     _title(s, "Clinic scheduling optimization (CRS)",
-           "Manual adjustments vs. optimization models  ·  "
+           "Manual adjustments vs. optimization algorithms  ·  "
            "Indicator: TTS = mean patient time in system [days]")
     _bullets(s, [
         ("Objective: minimize total patient time in system (TTS).", 0),
-        (f"Configurations compared: {n_man} manual + {n_opt} optimal (models).", 1),
-        (f"Replications: manual n={n_rep_man} (re-simulated); models n=50 (stored re-evaluation).", 1),
+        (f"Configurations compared: {n_man} manual + {n_opt} optimization algorithms.", 1),
+        (f"Replications: manual n={n_rep_man} (re-simulated); algorithms n=50 (stored re-evaluation).", 1),
         ("Tests: Welch t-test (unequal variances) + Welch ANOVA + Kruskal-Wallis + Levene.", 1),
         ("Run-size (MODULE 1): recommended 10-18 replications; baseline TTS 95% CI = [254.7, 266.3] d.", 1),
     ], top=2.6, size=16)
 
-    # 2) Methods / modules with names
+    # 2) Methods / algorithms with names
     s = blank(prs)
-    _title(s, "Optimization methods (modules)")
-    rows = [["Key", "Full method name"]]
-    for k in ["M4", "M4RF", "M7", "M8", "M10", "M11", "M13", "RS"]:
-        rows.append([k, NAMES[k]])
-    _table(s, rows, 0.5, 1.4, 12.3, 4.6, fontsize=12)
-    _bullets(s, [("This batch ran: M4, M7, M8, M10, M13 (15 seeds each). "
-                  "M4RF and M11 are pending the PC run. RS produced no valid data.", 0)],
-             top=6.2, size=12)
+    _title(s, "Optimization algorithms")
+    rows = [["Algorithm (short)", "Full name"]]
+    for k in ["M4", "M4RF", "M8", "M10", "M11", "M13", "RS"]:
+        rows.append([SHORT[k], NAMES[k]])
+    _table(s, rows, 0.5, 1.4, 12.3, 4.3, fontsize=12)
+    _bullets(s, [("This batch ran: Bayesian Opt (GP), Adaptive SK, SK-KGCP, SPSA (15 seeds each). "
+                  "SMAC-RF and ASTRO-DF are pending the PC run. Random Search produced no valid data.", 0)],
+             top=6.1, size=12)
 
     # 3) TTS results (table + bars)
     s = blank(prs)
     _title(s, "Results — TTS per option (mean ± SD, 95% CI, Welch vs Current)")
-    best_tts = min(x["tts_media"] for x in esc)
     rows = [["Option", "type", "TTS μ±σ", "95% CI", "served", "Δ vs Cur", "p Welch", "verdict"]]
     for x in sorted(esc, key=lambda x: x["tts_media"]):
         at = x["atenciones_media"]; p = x["p_welch_vs_current"]
         verdict = "—" if x["escenario"] == "Current" else (
             "BETTER" if (np.isfinite(p) and p < 0.05) else "≈")
-        rows.append([disp(x["escenario"]), "optimal" if x["tipo"] == "optimo" else "manual",
+        rows.append([disp(x["escenario"]), "algorithm" if x["tipo"] == "optimo" else "manual",
                      f"{x['tts_media']:.1f}±{x['tts_sd']:.1f}",
                      f"[{x['tts_ic95'][0]:.1f},{x['tts_ic95'][1]:.1f}]",
                      f"{at:.0f}" if np.isfinite(at) else "—",
                      f"{x['delta_tts_vs_current']:+.1f}",
                      f"{p:.1e}" if np.isfinite(p) else "—", verdict])
-    _table(s, rows, 0.3, 1.35, 6.4, 5.0, fontsize=9)
+    _table(s, rows, 0.3, 1.35, 6.4, 4.6, fontsize=10)
     _img(s, f_bar, 6.95, 1.5, w=6.15)
 
     # 4) Analysis of variance
@@ -288,14 +363,14 @@ def main():
         ("Kruskal-Wallis (non-parametric backup):", 0),
         (f"p = {av['kruskal_wallis_p']:.1e}.", 1),
         ("Post-hoc Welch t + Holm correction:", 0),
-        ("ALL optimal models are significantly better than ALL manual scenarios (p ≪ 0.001).", 1),
+        ("ALL optimization algorithms are significantly better than ALL manual scenarios (p ≪ 0.001).", 1),
         ("Current differs significantly from Management, Mgmt+Cap and v2.", 1),
     ], top=1.4, size=15)
 
     # 5) Business decision
     s = blank(prs)
     _title(s, "Business decision — for the decision-maker")
-    cur = rec["current"]; base_t, base_a = cur["tts"], cur["atenciones"]
+    base_t, base_a = rec["current"]["tts"], rec["current"]["atenciones"]
     rows = [["Option", "wait [d]", "Δwait", "served", "Δserved", "signif.", "Pareto"]]
     for x in sorted(esc, key=lambda x: x["tts_media"]):
         at = x["atenciones_media"]
@@ -308,60 +383,56 @@ def main():
                      f"{dt:+.0f} ({100*dt/base_t:+.0f}%)",
                      f"{at:.0f}" if np.isfinite(at) else "—",
                      f"{da:+.0f}" if np.isfinite(da) else "—", sig, par])
-    _table(s, rows, 0.3, 1.35, 9.0, 4.7, fontsize=10)
+    _table(s, rows, 0.3, 1.35, 9.0, 4.3, fontsize=11)
     _bullets(s, [
         (f"▸ Lowest wait: {disp(rec['menor_tts'])}.", 0),
         (f"▸ Highest throughput: {disp(rec['mayor_throughput'])}.", 0),
-        ("▸ Models cut waiting by ~33% vs ~9% for the best manual.", 0),
+        ("▸ Algorithms cut waiting ~33% vs ~9% for the best manual.", 0),
     ], left=9.5, top=1.5, w=3.6, size=12)
 
     # 6) Pareto + caveat
     s = blank(prs)
     _title(s, "Observed results: TTS vs throughput")
-    _img(s, f_par, 0.4, 1.3, w=8.2)
+    _img(s, f_par, 0.35, 1.3, w=8.4)
     _bullets(s, [
         ("Critical reading:", 0),
-        ("Only TTS was optimized by the models.", 1),
+        ("Only TTS was optimized by the algorithms.", 1),
         ("Throughput (attentions) is an EMERGENT outcome, not an objective.", 1),
         ("Therefore no hypothesis test on throughput; it is context only.", 1),
         ("Message: reducing waiting did NOT sacrifice throughput (it rose).", 1),
         ("To optimize both, use f = TTS − λ·attentions.", 1),
-    ], left=8.8, top=1.4, w=4.3, size=13)
+    ], left=8.9, top=1.4, w=4.2, size=13)
 
     # 7) Decision variables (parallel coordinates)
     s = blank(prs)
     _title(s, "Decision variables by option — what each configuration changes")
     _img(s, f_pc, 0.3, 1.35, w=12.7)
-    _bullets(s, [("Models use levers the manual scenarios did not: lead time = 1 day (not 7), "
+    _bullets(s, [("Algorithms use levers the manual scenarios did not: lead time = 1 day (not 7), "
                   "blocking at 5% (not 10%), 4 agents, post-control hours = 70 — without adding midwives.", 0)],
              top=6.6, size=12)
 
-    # 7b) Summary table — final decision-variable values per option/model
+    # 7b) Summary table — final values per option/algorithm
     s = blank(prs)
-    _title(s, "Final decision-variable values per option / model")
-    # column order: manual scenarios, then models sorted by TTS (best first)
+    _title(s, "Final decision-variable values per option / algorithm")
     manual_cols = [x["escenario"] for x in esc if x["tipo"] == "manual"]
     model_cols = [x["escenario"] for x in sorted(esc, key=lambda x: x["tts_media"])
                   if x["tipo"] == "optimo"]
     cols = ["Current"] + [c for c in manual_cols if c != "Current"] + model_cols
     cols = [c for c in cols if c in vd]
-    header = ["Decision variable"] + [disp(c) for c in cols]
-    rows = [header]
+    rows = [["Decision variable"] + [disp(c) for c in cols]]
     for v, (lo, hi, typ, lab) in VARIABLES.items():
         row = [lab]
         for c in cols:
             val = vd.get(c, {}).get(v)
-            if val is None:
-                row.append("—")
-            else:
-                row.append(f"{val:.2f}" if typ == "float" else f"{int(round(val))}")
+            row.append("—" if val is None else
+                       (f"{val:.2f}" if typ == "float" else f"{int(round(val))}"))
         rows.append(row)
     _table(s, rows, 0.2, 1.3, 12.95, 5.7, fontsize=8)
-    _bullets(s, [("Ranges: hours/slots and counts are absolute; percentages in [0.05, 0.50]. "
-                  "Models concentrate at lead time = 1 day and blocking = 5%.", 0)],
+    _bullets(s, [("Hours/slots and counts are absolute; percentages in [0.05, 0.50]. "
+                  "Algorithms concentrate at lead time = 1 day and blocking = 5%.", 0)],
              top=7.05, size=10)
 
-    # 8) Decision variables OVER the Pareto (requested)
+    # 8) Decision variables OVER the Pareto
     s = blank(prs)
     _title(s, "How decision variables distribute over the Pareto")
     _img(s, f_pv, 0.3, 1.3, w=8.6)
@@ -372,17 +443,17 @@ def main():
         ("First-consult blocking = 5% (minimal blocking).", 1),
         ("# UGD agents = 4 (maximum agent staffing).", 1),
         ("Post-control slots = 70 (maximum).", 1),
-        ("→ These are the levers separating models from manual scenarios.", 0),
+        ("→ These are the levers separating algorithms from manual scenarios.", 0),
     ], left=9.1, top=1.4, w=4.0, size=12)
 
     # 9) Conclusions
     s = blank(prs)
     _title(s, "Conclusions and recommendation")
     _bullets(s, [
-        ("1. Optimization models dominate manual adjustments on TTS.", 0),
-        (f"Best model: {disp(rec['menor_tts'])} (~33% less waiting), significant (p ≪ 0.001).", 1),
+        ("1. Optimization algorithms dominate manual adjustments on TTS.", 0),
+        (f"Best algorithm: {disp(rec['menor_tts'])} (~33% less waiting), significant (p ≪ 0.001).", 1),
         ("2. The improvement does not sacrifice throughput (attentions increase).", 0),
-        ("3. Key levers found by the models: immediate publishing, minimal blocking, "
+        ("3. Key levers found by the algorithms: immediate publishing, minimal blocking, "
          "agent staffing — rather than adding midwives.", 0),
         ("4. Validity: same simulator for all; Welch test (heteroscedastic); 95% CI; "
          "replication count supported by MODULE 1.", 0),
@@ -391,8 +462,8 @@ def main():
     ], top=1.4, size=15)
 
     prs.save(args.out)
-    n = len(prs.slides._sldIdLst)
-    print(f"OK report generated: {args.out}  ({n} slides)")
+    print(f"OK report generated: {args.out}  ({len(prs.slides._sldIdLst)} slides)  "
+          f"[excluded: {', '.join(sorted(EXCLUDE))}]")
 
 
 if __name__ == "__main__":
