@@ -336,6 +336,31 @@ def main():
                   "blocking at 5% (not 10%), 4 agents, post-control hours = 70 — without adding midwives.", 0)],
              top=6.6, size=12)
 
+    # 7b) Summary table — final decision-variable values per option/model
+    s = blank(prs)
+    _title(s, "Final decision-variable values per option / model")
+    # column order: manual scenarios, then models sorted by TTS (best first)
+    manual_cols = [x["escenario"] for x in esc if x["tipo"] == "manual"]
+    model_cols = [x["escenario"] for x in sorted(esc, key=lambda x: x["tts_media"])
+                  if x["tipo"] == "optimo"]
+    cols = ["Current"] + [c for c in manual_cols if c != "Current"] + model_cols
+    cols = [c for c in cols if c in vd]
+    header = ["Decision variable"] + [disp(c) for c in cols]
+    rows = [header]
+    for v, (lo, hi, typ, lab) in VARIABLES.items():
+        row = [lab]
+        for c in cols:
+            val = vd.get(c, {}).get(v)
+            if val is None:
+                row.append("—")
+            else:
+                row.append(f"{val:.2f}" if typ == "float" else f"{int(round(val))}")
+        rows.append(row)
+    _table(s, rows, 0.2, 1.3, 12.95, 5.7, fontsize=8)
+    _bullets(s, [("Ranges: hours/slots and counts are absolute; percentages in [0.05, 0.50]. "
+                  "Models concentrate at lead time = 1 day and blocking = 5%.", 0)],
+             top=7.05, size=10)
+
     # 8) Decision variables OVER the Pareto (requested)
     s = blank(prs)
     _title(s, "How decision variables distribute over the Pareto")
