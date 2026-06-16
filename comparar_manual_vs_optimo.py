@@ -112,9 +112,11 @@ def _worker_eval(q, idx, seed, cfg_dict):
 def evaluar_cfg(cfg, r, seed_base, timeout_s=900, n_workers=4):
     """Corre r réplicas (en paralelo, hasta n_workers) con timeout por réplica.
     Devuelve (tts[], at[], n_timeout). Nunca se queda pegado."""
-    import dataclasses, multiprocessing as mp, time
+    import dataclasses, multiprocessing as mp, time, sys
     cfg_dict = dataclasses.asdict(cfg)
-    ctx = mp.get_context("fork")
+    # fork en Linux (rápido); spawn en Windows/macOS (portable). El worker es
+    # módulo-level y reconstruye SimConfig dentro → compatible con spawn.
+    ctx = mp.get_context("fork" if sys.platform.startswith("linux") else "spawn")
     q = ctx.Queue()
     results, running, n_to = {}, {}, 0
     pending = list(range(r))
