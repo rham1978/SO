@@ -177,6 +177,100 @@ def mejor_incumbente_por_metodo(res_dir):
             best[m] = (c, j["incumbente"])
     return {m: inc for m, (c, inc) in best.items()}
 
+def _welch_anova(grupos):
+    """ANOVA de Welch (varianzas desiguales). grupos = lista de arrays.
+    Devuelve (F, df1, df2, p). Apropiado bajo heterocedasticidad."""
+    g = [np.asarray(x, float) for x in grupos]
+    g = [x[np.isfinite(x)] for x in g]
+    g = [x for x in g if len(x) >= 2]
+    k = len(g)
+    if k < 2:
+        return float("nan"), float("nan"), float("nan"), float("nan")
+    n = np.array([len(x) for x in g], float)
+    m = np.array([x.mean() for x in g])
+    v = np.array([x.var(ddof=1) for x in g])
+    w = n / v
+    sw = w.sum()
+    xbar = (w * m).sum() / sw
+    A = (w * (m - xbar) ** 2).sum() / (k - 1)
+    tmp = ((1 - w / sw) ** 2 / (n - 1)).sum()
+    B = 1 + (2 * (k - 2) / (k ** 2 - 1)) * tmp
+    F = A / B
+    df1 = k - 1
+    df2 = (k ** 2 - 1) / (3 * tmp)
+    p = float(stats.f.sf(F, df1, df2))
+    return float(F), float(df1), float(df2), p
+
+
+def _holm(pvals):
+    """Corrección Holm-Bonferroni. Devuelve lista de p ajustados."""
+    m = len(pvals)
+    order = np.argsort(pvals)
+    adj = [1.0] * m
+    run = 0.0
+    for rank, idx in enumerate(order):
+        run = max(run, (m - rank) * pvals[idx])
+        adj[idx] = min(1.0, run)
+    return adj
+
+
+def analisis_varianza(filas):
+    """Omnibus + post-hoc sobre el TTS de todos los escenarios (manual + óptimo).
+    Robusto a heterocedasticidad (Welch ANOVA + Kruskal-Wallis + Welch pareado)."""
+    nombres = [f[0] for f in filas]
+    grupos = [f[2][np.isfinite(f[2])] for f in filas]
+    print("\n" + "=" * 92)
+    print("ANÁLISIS DE VARIANZA — TTS entre escenarios (manual + óptimo)")
+    print("=" * 92)
+    # varianzas
+    print("Desviación estándar (σ) por escenario:")
+    for nom, g in zip(nombres, grupos):
+        print(f"  {nom:16} σ={g.std(ddof=1):6.2f}  (n={len(g)})")
+    # homogeneidad de varianzas (Brown-Forsythe = Levene centrado en mediana)
+    try:
+        lev = stats.levene(*grupos, center="median")
+        homog = lev.pvalue > 0.05
+        print(f"\nLevene (homogeneidad de varianzas): W={lev.statistic:.3f}  p={lev.pvalue:.4f}"
+              f"  → varianzas {'homogéneas' if homog else 'DESIGUALES (heterocedástico)'}")
+    except Exception:
+        print("\nLevene: no calculable")
+    # omnibus
+    F, df1, df2, pA = _welch_anova(grupos)
+    print(f"\nWelch ANOVA (omnibus, varianzas desiguales): F({df1:.0f},{df2:.1f})={F:.2f}  p={pA:.2e}")
+    try:
+        kw = stats.kruskal(*grupos)
+        print(f"Kruskal-Wallis (no paramétrico, respaldo):   H={kw.statistic:.2f}  p={kw.pvalue:.2e}")
+    except Exception:
+        pass
+    # post-hoc: Welch t por pares + Holm (igual método que la tabla del usuario)
+    import itertools
+    pares = list(itertools.combinations(range(len(filas)), 2))
+    praw = []
+    for i, j in pares:
+        try:
+            praw.append(stats.ttest_ind(grupos[i], grupos[j], equal_var=False).pvalue)
+        except Exception:
+            praw.append(1.0)
+    padj = _holm(praw)
+    print("\nPost-hoc Welch t por pares (Holm-ajustado) — solo pares significativos (p<0.05):")
+    sig = [(nombres[i], nombres[j], praw[k], padj[k])
+           for k, (i, j) in enumerate(pares) if padj[k] < 0.05]
+    sig.sort(key=lambda x: x[3])
+    if not sig:
+        print("  (ninguno significativo)")
+    for a, b, pr, pa in sig:
+        print(f"  {a:16} vs {b:16}  p={pr:.2e}  p_Holm={pa:.2e}")
+    print("=" * 92)
+    return {
+        "welch_anova": {"F": F, "df1": df1, "df2": df2, "p": pA},
+        "kruskal_wallis_p": float(stats.kruskal(*grupos).pvalue) if len(grupos) > 1 else None,
+        "levene_p": float(stats.levene(*grupos, center="median").pvalue) if len(grupos) > 1 else None,
+        "posthoc_welch_holm": [
+            {"a": nombres[i], "b": nombres[j], "p": praw[k], "p_holm": padj[k]}
+            for k, (i, j) in enumerate(pares)],
+    }
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--res", default="pipeline_out/resultados")
