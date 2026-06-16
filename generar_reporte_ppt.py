@@ -129,41 +129,43 @@ def fig_tts_bars(esc, out):
 
 def fig_pareto(esc, pareto, out):
     from adjustText import adjust_text
-    fig, ax = plt.subplots(figsize=(11, 7))
+    fig, ax = plt.subplots(figsize=(12, 7.6))
     pe = sorted([x for x in esc if x["escenario"] in pareto
                  and np.isfinite(x["atenciones_media"])],
                 key=lambda x: x["atenciones_media"])
     if len(pe) > 1:
         ax.plot([x["atenciones_media"] for x in pe], [x["tts_media"] for x in pe],
-                ls="--", color=GREEN, lw=1.6, alpha=0.6, zorder=1)
+                ls="--", color=GREEN, lw=1.6, alpha=0.55, zorder=1)
     texts, xs, ys = [], [], []
     for x in esc:
         at = x["atenciones_media"]
         if not np.isfinite(at): continue
         c = color_of(x["tipo"]); mk = "o" if x["tipo"] == "optimo" else "s"
-        ax.scatter(at, x["tts_media"], s=210, marker=mk, color=c, zorder=3,
-                   edgecolor="white", linewidth=1.4)
+        ax.scatter(at, x["tts_media"], s=230, marker=mk, color=c, zorder=3,
+                   edgecolor="white", linewidth=1.6)
         xs.append(at); ys.append(x["tts_media"])
         texts.append(ax.text(at, x["tts_media"], f"{disp(x['escenario'])} · {x['tts_media']:.0f} d",
-                             fontsize=9.5, fontweight="bold", color="#222222"))
-    adjust_text(texts, x=xs, y=ys, ax=ax, expand=(1.4, 1.8),
-                arrowprops=dict(arrowstyle="-", color="#999999", lw=0.7))
+                             fontsize=11, fontweight="bold", color="#1a1a1a"))
+    adjust_text(texts, x=xs, y=ys, ax=ax, expand=(1.8, 2.2),
+                force_text=(0.6, 0.9), only_move={"text": "xy"},
+                arrowprops=dict(arrowstyle="-", color="#888888", lw=0.8))
     import matplotlib.patches as mp
     h = [mp.Patch(color=BLUE, label="Optimal (algorithm)"), mp.Patch(color=RED, label="Manual")]
     if len(pe) > 1:
         h.append(plt.Line2D([], [], ls="--", color=GREEN, label="non-dominated set (observed)"))
-    ax.legend(handles=h, loc="center right", framealpha=0.92)
-    ax.set_xlabel("Patients served (total attentions)   →   more = better")
-    ax.set_ylabel("TTS — time in system [days]   ←   less = better")
+    ax.legend(handles=h, loc="center", framealpha=0.96, fontsize=11)
+    ax.set_xlabel("Patients served (total attentions)   →   more = better", fontsize=12)
+    ax.set_ylabel("TTS — time in system [days]   ←   less = better", fontsize=12)
     ax.set_title("Observed results: TTS vs throughput\n"
                  "(only TTS was optimized; throughput is an emergent outcome)")
-    # direction hint in an empty area (lower-left)
-    ax.annotate("", xy=(0.16, 0.06), xytext=(0.30, 0.20), xycoords="axes fraction",
-                arrowprops=dict(arrowstyle="->", color=GREEN, lw=2))
-    ax.text(0.31, 0.21, "better", transform=ax.transAxes, color=GREEN,
-            fontsize=12, fontweight="bold")
+    # margins so labels don't hit the frame
+    ax.margins(x=0.10, y=0.12)
+    ax.annotate("", xy=(0.15, 0.07), xytext=(0.29, 0.21), xycoords="axes fraction",
+                arrowprops=dict(arrowstyle="->", color=GREEN, lw=2.2))
+    ax.text(0.30, 0.22, "better", transform=ax.transAxes, color=GREEN,
+            fontsize=13, fontweight="bold")
     fig.tight_layout(); p = os.path.join(out, "fig_pareto.png")
-    fig.savefig(p); plt.close(); return p
+    fig.savefig(p, dpi=220, facecolor="white"); plt.close(); return p
 
 
 def fig_pareto_variables(esc, vd, out):
