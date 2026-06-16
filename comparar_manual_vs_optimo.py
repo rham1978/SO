@@ -271,6 +271,50 @@ def analisis_varianza(filas):
     }
 
 
+# mapeo campo SimConfig → variable de decisión (para mostrar qué cambia cada opción)
+_F2V_DEC = {
+    "fixed_weekly_capacity": "horas_especialista_1ra",
+    "fixed_post_control_capacity": "horas_control_post",
+    "ugd_lab_per_week": "cupos_laboratorio_ugd",
+    "mat_us_per_week": "cupos_ecografia_matrona",
+    "ugd_us_per_week": "cupos_ecografia_ugd",
+    "publish_lead_workdays": "dias_publicacion",
+    "matrona_capacity": "num_matronas",
+    "agent_capacity": "num_agentes_ugd",
+    "blocked_pct": "pct_bloqueo_1ra",
+    "empty_control_p_ugd": "pct_consultas_vacias",
+    "not_contactable_p": "pct_no_contactabilidad",
+    "blocked_pct_post_control": "pct_bloqueo_post_control",
+}
+_VARS_DEC = list(_F2V_DEC.values())
+
+
+def _decvars_de_cfg(cfg):
+    """Extrae las 12 variables de decisión desde un SimConfig ya configurado."""
+    out = {}
+    for f, v in _F2V_DEC.items():
+        val = getattr(cfg, f, None)
+        out[v] = float(val) if isinstance(val, float) else (int(val) if val is not None else None)
+    return out
+
+
+def tabla_variables_decision(vars_esc, orden):
+    """Muestra cómo varían las 12 variables de decisión en cada escenario/opción."""
+    print("\n" + "=" * 100)
+    print("VARIABLES DE DECISIÓN POR OPCIÓN — qué cambia concretamente cada configuración")
+    print("=" * 100)
+    cols = [c for c in orden if c in vars_esc]
+    hdr = "variable".ljust(26) + "".join(c[:11].rjust(12) for c in cols)
+    print(hdr); print("-" * len(hdr))
+    for v in _VARS_DEC:
+        row = v.ljust(26)
+        for c in cols:
+            x = vars_esc[c].get(v)
+            row += (f"{x:12.2f}" if isinstance(x, float) else f"{x:>12}")
+        print(row)
+    print("=" * 100)
+
+
 def recomendacion_negocio(filas):
     """Traduce la comparación estadística en una decisión de negocio.
     Ejes: TTS (espera, minimizar) vs atenciones (throughput, maximizar) vs Current."""
@@ -348,6 +392,7 @@ def main():
     import dataclasses as dc
 
     filas = []   # (nombre, tipo, tts_arr, at_arr)
+    vars_esc = {"BASE": _decvars_de_cfg(dc.replace(CFG))}  # variables de decisión por opción
 
     def _eval(cfg):
         return evaluar_cfg(cfg, args.r, args.seed_base,
@@ -357,6 +402,7 @@ def main():
     for nombre, ov in escenarios_manuales(CFG).items():
         cfg = dc.replace(CFG); cfg.benchmark_mode = True
         for k, v in ov.items(): setattr(cfg, k, v)
+        vars_esc[nombre] = _decvars_de_cfg(cfg)
         tts, at, n_to = _eval(cfg)
         filas.append((nombre, "manual", tts, at))
         aviso = f"  ⚠ {n_to} timeouts" if n_to else ""
@@ -369,6 +415,7 @@ def main():
         if args.solo_metodos and m not in args.solo_metodos: continue
         cfg = dc.replace(CFG); cfg.benchmark_mode = True
         aplicar_incumbente(cfg, inc)
+        vars_esc[f"ÓPTIMO {m}"] = _decvars_de_cfg(cfg)
         tts, at, n_to = _eval(cfg)
         filas.append((f"ÓPTIMO {m}", "optimo", tts, at))
         aviso = f"  ⚠ {n_to} timeouts" if n_to else ""
@@ -434,7 +481,12 @@ def main():
     # 5) recomendación de negocio
     rec = recomendacion_negocio(filas)
 
-    json.dump({"escenarios": salida, "analisis_varianza": av, "recomendacion": rec},
+    # 6) cómo varían las variables de decisión por opción
+    orden_vd = ["BASE"] + [f[0] for f in filas]
+    tabla_variables_decision(vars_esc, orden_vd)
+
+    json.dump({"escenarios": salida, "analisis_varianza": av, "recomendacion": rec,
+               "variables_decision": vars_esc},
               open(os.path.join(args.out, "comparacion_manual.json"), "w"),
               indent=2, ensure_ascii=False)
     print(f"\nGráfica: {png}")
