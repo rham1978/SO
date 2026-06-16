@@ -108,21 +108,23 @@ def fig_tts_bars(esc, out):
     lo = [x["tts_media"] - x["tts_ic95"][0] for x in e]
     hi = [x["tts_ic95"][1] - x["tts_media"] for x in e]
     col = [color_of(x["tipo"]) for x in e]
-    fig, ax = plt.subplots(figsize=(11, 5.8))
-    bars = ax.bar(nom, m, yerr=[lo, hi], capsize=5, color=col, alpha=0.9,
-                  edgecolor="white", linewidth=1.2, error_kw={"elinewidth": 1.3})
+    fig, ax = plt.subplots(figsize=(11.5, 6.2))
+    ax.bar(nom, m, yerr=[lo, hi], capsize=5, color=col, alpha=0.92,
+           edgecolor="white", linewidth=1.3, error_kw={"elinewidth": 1.4, "ecolor": "#222"})
     for i, v in enumerate(m):
-        ax.text(i, v + max(hi) + 3, f"{v:.0f}", ha="center", fontsize=10, fontweight="bold")
+        ax.text(i, v + hi[i] + 4, f"{v:.0f} d", ha="center", fontsize=11,
+                fontweight="bold", color="#1a1a1a")
     ax.set_ylabel("TTS — mean time in system [days]   (lower = better)")
-    ax.set_title("TTS by option (mean ± 95% CI)")
-    ax.set_ylim(0, max(m) * 1.18)
-    plt.xticks(rotation=22, ha="right")
-    ax.grid(axis="x", visible=False)
+    ax.set_title("TTS by option (mean ± 95% CI)   ·   labels = mean TTS [days]")
+    ax.set_ylim(0, max(m) * 1.22)
+    ax.set_axisbelow(True); ax.grid(axis="y", alpha=0.3); ax.grid(axis="x", visible=False)
+    plt.xticks(rotation=20, ha="right")
     import matplotlib.patches as mp
     ax.legend(handles=[mp.Patch(color=BLUE, label="Optimal (model)"),
-                       mp.Patch(color=RED, label="Manual")], loc="upper right", framealpha=0.9)
+                       mp.Patch(color=RED, label="Manual")],
+              loc="upper left", framealpha=0.95, fontsize=11)
     fig.tight_layout(); p = os.path.join(out, "fig_tts_bars.png")
-    fig.savefig(p); plt.close(); return p
+    fig.savefig(p, dpi=220, facecolor="white"); plt.close(); return p
 
 
 def fig_pareto(esc, pareto, out):
