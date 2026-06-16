@@ -160,10 +160,11 @@ def fig_pareto(esc, pareto, out):
                  "(only TTS was optimized; throughput is an emergent outcome)")
     # margins so labels don't hit the frame
     ax.margins(x=0.10, y=0.12)
-    ax.annotate("", xy=(0.15, 0.07), xytext=(0.29, 0.21), xycoords="axes fraction",
-                arrowprops=dict(arrowstyle="->", color=GREEN, lw=2.2))
-    ax.text(0.30, 0.22, "better", transform=ax.transAxes, color=GREEN,
-            fontsize=13, fontweight="bold")
+    # "better" = bottom-right (less wait AND more patients) — arrow points down-right
+    ax.annotate("", xy=(0.62, 0.09), xytext=(0.42, 0.24), xycoords="axes fraction",
+                arrowprops=dict(arrowstyle="->", color=GREEN, lw=2.4))
+    ax.text(0.41, 0.27, "better\n(less wait + more patients)", transform=ax.transAxes,
+            color=GREEN, fontsize=12, fontweight="bold", ha="center")
     fig.tight_layout(); p = os.path.join(out, "fig_pareto.png")
     fig.savefig(p, dpi=220, facecolor="white"); plt.close(); return p
 
