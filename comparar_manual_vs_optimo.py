@@ -166,8 +166,8 @@ def _ic(a):
     s = float(a.std(ddof=1))
     return m, s, m - 1.96*s/np.sqrt(n), m + 1.96*s/np.sqrt(n)
 
-def mejor_incumbente_por_metodo(res_dir):
-    """Mejor incumbente (menor reeval/costo) de cada método con datos válidos."""
+def mejor_registro_por_metodo(res_dir):
+    """Devuelve el registro JSON completo del MEJOR seed (menor reeval) por método."""
     best = {}
     for f in glob.glob(os.path.join(res_dir, "resultado_*.json")):
         j = json.load(open(f))
@@ -176,8 +176,26 @@ def mejor_incumbente_por_metodo(res_dir):
         if c is None or not np.isfinite(c): continue
         m = j["modulo"]
         if m not in best or c < best[m][0]:
-            best[m] = (c, j["incumbente"])
-    return {m: inc for m, (c, inc) in best.items()}
+            best[m] = (c, j)
+    return {m: rec for m, (c, rec) in best.items()}
+
+
+def mejor_incumbente_por_metodo(res_dir):
+    """Mejor incumbente (menor reeval/costo) de cada método con datos válidos."""
+    return {m: rec["incumbente"] for m, rec in mejor_registro_por_metodo(res_dir).items()}
+
+
+def _arr_desde_stats(media, sd, n):
+    """Reconstruye un arreglo de n valores con EXACTAMENTE esa media y sd (ddof=1).
+    Sirve para usar el reeval guardado (media, sd, n) sin re-simular: el test de
+    Welch y el IC quedan EXACTOS (solo dependen de media/sd/n); los tests de rango
+    (Kruskal/Levene) quedan aproximados porque se impone la forma."""
+    n = int(max(1, n))
+    if n < 2 or not (sd and np.isfinite(sd)):
+        return np.full(n, float(media))
+    z = np.linspace(-1.0, 1.0, n)
+    z = (z - z.mean()) / z.std(ddof=1)   # media 0, sd 1
+    return float(media) + float(sd) * z
 
 def _welch_anova(grupos):
     """ANOVA de Welch (varianzas desiguales). grupos = lista de arrays.
@@ -387,6 +405,10 @@ def main():
                     help="timeout por réplica [s] (anti-deadlock; def 900)")
     ap.add_argument("--n_workers", type=int, default=4,
                     help="procesos paralelos para las réplicas (def 4)")
+    ap.add_argument("--usar-reeval-modulos", dest="usar_reeval_modulos",
+                    action="store_true",
+                    help="usa el TTS guardado de los módulos (reeval, n=r_final) "
+                         "en vez de re-simularlos; solo re-simula los manuales.")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
 
@@ -411,18 +433,30 @@ def main():
         print(f"[manual] {nombre:14} TTS={np.nanmean(tts):7.1f}d  "
               f"atenciones={np.nanmean(at):7.0f}{aviso}", flush=True)
 
-    # 2) incumbentes óptimos (mismos seeds → CRN/pareado)
-    bestinc = mejor_incumbente_por_metodo(args.res)
-    for m, inc in bestinc.items():
+    # 2) incumbentes óptimos
+    bestrec = mejor_registro_por_metodo(args.res)
+    for m, rec in bestrec.items():
         if args.solo_metodos and m not in args.solo_metodos: continue
+        inc = rec["incumbente"]
         cfg = dc.replace(CFG); cfg.benchmark_mode = True
         aplicar_incumbente(cfg, inc)
         vars_esc[f"ÓPTIMO {m}"] = _decvars_de_cfg(cfg)
-        tts, at, n_to = _eval(cfg)
+        if args.usar_reeval_modulos:
+            # usa el TTS ya calculado por el módulo (reeval, n=r_final), sin re-simular
+            re = rec.get("reeval") or {}
+            kp = rec.get("kpis_incumbente") or {}
+            n = int(re.get("r_final", 50))
+            tts = _arr_desde_stats(re.get("media", np.nan), re.get("sd", np.nan), n)
+            at = _arr_desde_stats(kp.get("total_atenciones_mean", np.nan),
+                                  kp.get("total_atenciones_sd", 0.0), n)
+            print(f"[optimo] {m:14} TTS={np.nanmean(tts):7.1f}d  "
+                  f"atenciones={np.nanmean(at):7.0f}  (reeval guardado, n={n})", flush=True)
+        else:
+            tts, at, n_to = _eval(cfg)
+            aviso = f"  ⚠ {n_to} timeouts" if n_to else ""
+            print(f"[optimo] {m:14} TTS={np.nanmean(tts):7.1f}d  "
+                  f"atenciones={np.nanmean(at):7.0f}{aviso}", flush=True)
         filas.append((f"ÓPTIMO {m}", "optimo", tts, at))
-        aviso = f"  ⚠ {n_to} timeouts" if n_to else ""
-        print(f"[optimo] {m:14} TTS={np.nanmean(tts):7.1f}d  "
-              f"atenciones={np.nanmean(at):7.0f}{aviso}", flush=True)
 
     # 3) tabla μ ± σ + Welch t vs Current (mismo método que la tabla manual)
     cur = next(f for f in filas if f[0] == "Current")[2]
