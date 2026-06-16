@@ -18,3 +18,8 @@ analisis_out/
 *.xlsx
 *.zip
 *.7z
+
+# Logs y salidas de comparacion (generados)
+*.log
+comparacion_manual/
+comparacion*/
