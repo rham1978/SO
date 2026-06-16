@@ -427,16 +427,16 @@ def main():
     # 3) tabla μ ± σ + Welch t vs Current (mismo método que la tabla manual)
     cur = next(f for f in filas if f[0] == "Current")[2]
     cur_v = cur[np.isfinite(cur)]
-    print("\n" + "="*100)
-    print("RESUMEN — TTS = tiempo medio en sistema [días]  (μ ± σ; menor = mejor)")
-    print("="*100)
-    print(f"{'Escenario':16}{'tipo':8}{'TTS μ ± σ':20}{'atenc. μ':12}"
-          f"{'ΔTTS vs Cur':14}{'p Welch':12}{'veredicto':12}")
-    print("-"*100)
+    print("\n" + "="*108)
+    print("RESUMEN — TTS = tiempo medio en sistema [días]  (μ ± σ, IC95 de la media; menor = mejor)")
+    print("="*108)
+    print(f"{'Escenario':16}{'tipo':8}{'TTS μ ± σ':18}{'IC95 media':20}{'atenc. μ':11}"
+          f"{'ΔTTS':9}{'p Welch':11}{'veredicto':10}")
+    print("-"*108)
     salida = []
     for nombre, tipo, tts, at in filas:
         v = tts[np.isfinite(tts)]
-        m, sd = float(v.mean()), float(v.std(ddof=1)) if len(v) > 1 else 0.0
+        m, sd, lo, hi = _ic(v)
         am = float(np.nanmean(at))
         d = m - float(cur_v.mean())
         if nombre == "Current":
@@ -448,10 +448,11 @@ def main():
                 vere = "MEJOR" if m < cur_v.mean() else "PEOR"
             else:
                 vere = "≈ igual"
-        print(f"{nombre:16}{tipo:8}{f'{m:6.1f} ± {sd:4.1f}':20}{am:<12.0f}"
-              f"{d:+8.1f}{'':6}{p:<12.4f}{vere:12}")
+        print(f"{nombre:16}{tipo:8}{f'{m:6.1f} ± {sd:4.1f}':18}{f'[{lo:.1f}, {hi:.1f}]':20}"
+              f"{am:<11.0f}{d:+8.1f} {p:<11.4f}{vere:10}")
         salida.append({"escenario": nombre, "tipo": tipo,
-                       "tts_media": m, "tts_sd": sd, "atenciones_media": am,
+                       "tts_media": m, "tts_sd": sd, "tts_ic95": [lo, hi],
+                       "atenciones_media": am,
                        "delta_tts_vs_current": d, "p_welch_vs_current": p,
                        "tts_raw": [float(x) for x in v],
                        "atenciones_raw": [float(x) for x in at[np.isfinite(at)]]})
