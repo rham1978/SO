@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Generates a detailed PPTX report (ENGLISH) of the manual-vs-optimal comparison
-on TTS. Modules are shown by ALGORITHM NAME. M7 is excluded.
+on TTS. Modules are shown by ALGORITHM NAME.
 
 Usage:
     python generar_reporte_ppt.py --json comparacion_manual/comparacion_manual.json \
@@ -19,12 +19,13 @@ from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 
 # Modules excluded from the report
-EXCLUDE = {"M7"}
+EXCLUDE = set()
 
 # Full method names (for the methods table)
 NAMES = {
     "M4":  "SMAC Black-Box — Bayesian Optimization (Gaussian Process + EI)",
     "M4RF":"SMAC Random Forest (HPO: Random Forest + EI + Sobol)",
+    "M7":  "SMAC + Stochastic Kriging (EI)",
     "M8":  "Adaptive Stochastic Kriging",
     "M10": "Stochastic Kriging — KGCP (Knowledge Gradient for Continuous Parameters)",
     "M11": "ASTRO-DF (Adaptive Sampling Trust-Region Optimization, derivative-free)",
@@ -33,7 +34,7 @@ NAMES = {
 }
 # Short algorithm names (for figures/tables) — aligned with the LaTeX benchmark table
 SHORT = {
-    "M4": "SMAC-GP+EI", "M4RF": "SMAC-RF", "M8": "SK-Adaptive",
+    "M4": "SMAC-GP+EI", "M4RF": "SMAC-RF", "M7": "SMAC-SK", "M8": "SK-Adaptive",
     "M10": "SK-KGCP", "M11": "ASTRO-DF", "M13": "SPSA", "RS": "Random Search",
 }
 # Decision variables: (min, max, type, English label)
