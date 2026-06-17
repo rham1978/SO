@@ -27,15 +27,20 @@ NAMES = {
     "M4RF":"SMAC Random Forest (HPO: Random Forest + EI + Sobol)",
     "M7":  "SMAC + Stochastic Kriging (EI)",
     "M8":  "Adaptive Stochastic Kriging",
+    "M9":  "Stochastic Kriging — REVI",
     "M10": "Stochastic Kriging — KGCP (Knowledge Gradient for Continuous Parameters)",
     "M11": "ASTRO-DF (Adaptive Sampling Trust-Region Optimization, derivative-free)",
+    "M12": "STRONG (Stochastic Trust-Region Response-Surface)",
     "M13": "SPSA (Simultaneous Perturbation Stochastic Approximation)",
+    "M14": "ALOE (Adaptive Line-search with Oracle Estimations)",
+    "SA":  "Simulated Annealing (Alrefaei & Andradóttir, 1999)",
     "RS":  "Random Search",
 }
 # Short algorithm names (for figures/tables) — aligned with the LaTeX benchmark table
 SHORT = {
     "M4": "SMAC-GP+EI", "M4RF": "SMAC-RF", "M7": "SMAC-SK", "M8": "SK-Adaptive",
-    "M10": "SK-KGCP", "M11": "ASTRO-DF", "M13": "SPSA", "RS": "Random Search",
+    "M9": "SK-REVI", "M10": "SK-KGCP", "M11": "ASTRO-DF", "M12": "STRONG",
+    "M13": "SPSA", "M14": "ALOE", "SA": "SA", "RS": "Random Search",
 }
 # Decision variables: (min, max, type, English label)
 VARIABLES = {
@@ -102,7 +107,8 @@ def welch_anova(groups):
 # Colores por módulo (para convergencia / tiempos)
 COLORS_MOD = {
     "M4": "#1f77b4", "M4RF": "#1fa1d6", "M7": "#ff7f0e", "M8": "#2ca02c",
-    "M10": "#9467bd", "M11": "#8c564b", "M13": "#7f7f7f", "RS": "#17becf",
+    "M9": "#d62728", "M10": "#9467bd", "M11": "#8c564b", "M12": "#e377c2",
+    "M13": "#7f7f7f", "M14": "#bcbd22", "SA": "#17a2b8", "RS": "#17becf",
 }
 
 
