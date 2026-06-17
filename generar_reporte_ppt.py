@@ -231,9 +231,10 @@ def fig_pareto(esc, pareto, out):
         xs.append(at); ys.append(x["tts_media"])
         texts.append(ax.text(at, x["tts_media"], f"{disp(x['escenario'])} · {x['tts_media']:.0f} d",
                              fontsize=11, fontweight="bold", color="#1a1a1a"))
-    adjust_text(texts, x=xs, y=ys, ax=ax, expand=(1.8, 2.2),
-                force_text=(0.6, 0.9), only_move={"text": "xy"},
-                arrowprops=dict(arrowstyle="-", color="#888888", lw=0.8))
+    adjust_text(texts, x=xs, y=ys, ax=ax, expand=(2.3, 2.9),
+                force_text=(1.1, 1.5), force_static=(0.4, 0.6),
+                only_move={"text": "xy"},
+                arrowprops=dict(arrowstyle="-", color="#777777", lw=0.9))
     import matplotlib.patches as mp
     h = [mp.Patch(color=BLUE, label="Optimal (algorithm)"), mp.Patch(color=RED, label="Manual")]
     if len(pe) > 1:
