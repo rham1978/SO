@@ -99,6 +99,86 @@ def welch_anova(groups):
     return F, df1, df2, float(stats.f.sf(F, df1, df2))
 
 
+# Colores por módulo (para convergencia / tiempos)
+COLORS_MOD = {
+    "M4": "#1f77b4", "M4RF": "#1fa1d6", "M7": "#ff7f0e", "M8": "#2ca02c",
+    "M10": "#9467bd", "M11": "#8c564b", "M13": "#7f7f7f", "RS": "#17becf",
+}
+
+
+def cargar_modulos(res_dir):
+    """Lee los resultados por módulo con historia de convergencia."""
+    import glob
+    data = {}
+    if not res_dir or not os.path.isdir(res_dir):
+        return data
+    for f in glob.glob(os.path.join(res_dir, "resultado_*.json")):
+        try:
+            j = json.load(open(f))
+        except Exception:
+            continue
+        m = j.get("modulo")
+        if not m or m in EXCLUDE or m == "RS":
+            continue
+        if not j.get("conv_eval"):
+            continue
+        data.setdefault(m, []).append(j)
+    return data
+
+
+def _curva_media(curvas, n_grid=60):
+    xs = [np.array([p[0] for p in c], float) for c in curvas if len(c) > 1]
+    ys = [np.array([p[1] for p in c], float) for c in curvas if len(c) > 1]
+    if not xs:
+        return None
+    xmin = max(x.min() for x in xs); xmax = min(x.max() for x in xs)
+    if xmax <= xmin:
+        return None
+    grid = np.linspace(xmin, xmax, n_grid)
+    Y = []
+    for x, y in zip(xs, ys):
+        o = np.argsort(x); Y.append(np.interp(grid, x[o], y[o]))
+    Y = np.array(Y)
+    return grid, Y.mean(axis=0), Y.std(axis=0)
+
+
+def fig_convergencia(data, out):
+    fig, axes = plt.subplots(1, 2, figsize=(13.5, 5.8))
+    for ax, (xlab, conv, scale, ttl) in zip(axes, [
+            ("Simulator evaluations", "conv_eval", 1.0, "by evaluations"),
+            ("Compute time [hours]", "conv_time", 3600.0, "by compute time")]):
+        for m, regs in sorted(data.items()):
+            curvas = [[[p[0] / scale, p[1]] for p in r[conv]] for r in regs if r.get(conv)]
+            cm = _curva_media(curvas)
+            if cm is None:
+                continue
+            g, mu, sd = cm; c = COLORS_MOD.get(m, "#333")
+            ax.plot(g, mu, color=c, lw=2.2, label=SHORT.get(m, m))
+            ax.fill_between(g, mu - sd, mu + sd, color=c, alpha=0.12)
+        ax.set_xlabel(xlab); ax.set_ylabel("Best objective — TTS [days]  (lower=better)")
+        ax.set_title(ttl); ax.grid(alpha=0.3); ax.legend(fontsize=9, framealpha=0.9)
+    fig.suptitle("Algorithm convergence (mean ± σ across seeds)",
+                 fontsize=14, fontweight="bold")
+    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    p = os.path.join(out, "fig_convergencia.png")
+    fig.savefig(p, dpi=200, facecolor="white"); plt.close(); return p
+
+
+def fig_tiempo_exec(data, out):
+    mods = sorted(data, key=lambda m: np.mean([r["tiempo_seg"] for r in data[m]]))
+    vals = [[r["tiempo_seg"] / 3600.0 for r in data[m]] for m in mods]
+    fig, ax = plt.subplots(figsize=(10, 5.8))
+    bp = ax.boxplot(vals, tick_labels=[SHORT.get(m, m) for m in mods],
+                    patch_artist=True, showmeans=True)
+    for patch, m in zip(bp["boxes"], mods):
+        patch.set_facecolor(COLORS_MOD.get(m, "#333")); patch.set_alpha(0.6)
+    ax.set_ylabel("Execution time per seed [hours]")
+    ax.set_title("Computational cost by algorithm")
+    ax.grid(axis="y", alpha=0.3); plt.xticks(rotation=20, ha="right")
+    fig.tight_layout(); p = os.path.join(out, "fig_tiempo_exec.png")
+    fig.savefig(p, dpi=200, facecolor="white"); plt.close(); return p
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # FIGURES
 # ──────────────────────────────────────────────────────────────────────────────
@@ -282,6 +362,8 @@ def main():
     ap.add_argument("--json", default="comparacion_manual/comparacion_manual.json")
     ap.add_argument("--out", default="report_comparison.pptx")
     ap.add_argument("--figdir", default="reporte_figs")
+    ap.add_argument("--res", default="pipeline_out/resultados",
+                    help="carpeta de resultados por módulo (convergencia/tiempos)")
     args = ap.parse_args()
     os.makedirs(args.figdir, exist_ok=True)
 
@@ -451,6 +533,29 @@ def main():
         ("Post-control slots = 70 (maximum).", 1),
         ("→ These are the levers separating algorithms from manual scenarios.", 0),
     ], left=9.1, top=1.4, w=4.0, size=12)
+
+    # 8b) Algorithm benchmark — convergence + execution time
+    mod_data = cargar_modulos(args.res)
+    if mod_data:
+        f_conv = fig_convergencia(mod_data, args.figdir)
+        f_texec = fig_tiempo_exec(mod_data, args.figdir)
+        s = blank(prs)
+        _title(s, "Algorithm convergence (sample efficiency)")
+        _img(s, f_conv, 0.3, 1.35, w=12.7)
+        _bullets(s, [("Best objective vs. evaluations (left) and vs. compute time (right). "
+                      "A curve that drops earlier = more sample-efficient. Empirically all "
+                      "algorithms converge despite the heteroscedastic noise.", 0)],
+                 top=6.9, size=11)
+        s = blank(prs)
+        _title(s, "Computational cost — execution time")
+        _img(s, f_texec, 0.4, 1.5, w=8.0)
+        _bullets(s, [
+            ("Execution time per seed (52-week DES).", 0),
+            ("These methods are computationally expensive:", 0),
+            ("~17-22 h per seed in the original benchmark.", 1),
+            ("Motivates the replication-count analysis (MODULE 1)", 1),
+            ("and the choice of a sample-efficient method.", 1),
+        ], left=8.7, top=1.6, w=4.4, size=12)
 
     # 9) Conclusions
     s = blank(prs)
