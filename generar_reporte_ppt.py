@@ -189,6 +189,7 @@ def fig_tts_bars(esc, out):
     lo = [x["tts_media"] - x["tts_ic95"][0] for x in e]
     hi = [x["tts_ic95"][1] - x["tts_media"] for x in e]
     col = [color_of(x["tipo"]) for x in e]
+    n_rep = len(e[0].get("tts_raw", []) or [])
     fig, ax = plt.subplots(figsize=(11.5, 6.2))
     ax.bar(nom, m, yerr=[lo, hi], capsize=5, color=col, alpha=0.92,
            edgecolor="white", linewidth=1.3, error_kw={"elinewidth": 1.4, "ecolor": "#222"})
@@ -196,7 +197,10 @@ def fig_tts_bars(esc, out):
         ax.text(i, v + hi[i] + 4, f"{v:.0f} d", ha="center", fontsize=11,
                 fontweight="bold", color="#1a1a1a")
     ax.set_ylabel("TTS — mean time in system [days]   (lower = better)")
-    ax.set_title("TTS by option (mean ± 95% CI)   ·   labels = mean TTS [days]")
+    ttl = "TTS by option (mean ± 95% CI)   ·   labels = mean TTS [days]"
+    if n_rep:
+        ttl += f"   ·   n={n_rep}"
+    ax.set_title(ttl)
     ax.set_ylim(0, max(m) * 1.22)
     ax.set_axisbelow(True); ax.grid(axis="y", alpha=0.3); ax.grid(axis="x", visible=False)
     plt.xticks(rotation=20, ha="right")
