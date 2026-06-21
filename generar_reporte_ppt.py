@@ -426,12 +426,13 @@ def main():
     s = blank(prs)
     _title(s, "Optimization algorithms")
     rows = [["Algorithm (short)", "Full name"]]
-    for k in ["M4", "M4RF", "M8", "M10", "M11", "M13", "RS"]:
+    for k in ["M4", "M4RF", "M7", "M8", "M10", "M13", "M11", "RS"]:
         rows.append([SHORT[k], NAMES[k]])
     _table(s, rows, 0.5, 1.4, 12.3, 4.3, fontsize=12)
-    _bullets(s, [("This batch ran: Bayesian Opt (GP), Adaptive SK, SK-KGCP, SPSA (15 seeds each). "
-                  "SMAC-RF and ASTRO-DF are pending the PC run. Random Search produced no valid data.", 0)],
-             top=6.1, size=12)
+    _bullets(s, [("This batch ran 6 algorithms with valid data (15 seeds each): SMAC-GP+EI, SMAC-RF, "
+                  "SMAC-SK, SK-Adaptive, SK-KGCP and SPSA. ASTRO-DF failed to complete (solver deadlock) "
+                  "and Random Search produced no valid data.", 0)],
+             top=6.05, size=12)
 
     # 3) TTS results (table + bars)
     s = blank(prs)
