@@ -447,10 +447,29 @@ def main():
             kp = rec.get("kpis_incumbente") or {}
             n = int(re.get("r_final", 50))
             tts = _arr_desde_stats(re.get("media", np.nan), re.get("sd", np.nan), n)
-            at = _arr_desde_stats(kp.get("total_atenciones_mean", np.nan),
-                                  kp.get("total_atenciones_sd", 0.0), n)
-            print(f"[optimo] {m:14} TTS={np.nanmean(tts):7.1f}d  "
-                  f"atenciones={np.nanmean(at):7.0f}  (reeval guardado, n={n})", flush=True)
+            # atenciones: distintos módulos guardan la media bajo distintas claves
+            #   M4/M8/M10/M13 → 'total_atenciones_mean';  M4RF → 'at_media'
+            #   (= at_first_media + at_post_media);  M7 no la guarda.
+            at_mean = kp.get("total_atenciones_mean")
+            if at_mean is None:
+                at_mean = kp.get("at_media")
+            if at_mean is None and kp.get("at_first_media") is not None:
+                at_mean = float(kp.get("at_first_media", 0.0)) + float(kp.get("at_post_media", 0.0))
+            at_sd = kp.get("total_atenciones_sd")
+            if at_sd is None:
+                at_sd = kp.get("at_sd", 0.0)
+            if at_mean is None or not np.isfinite(at_mean):
+                # sin throughput guardado (p.ej. M7) → re-simular el incumbente
+                # con CRN para recuperar SOLO las atenciones (el TTS sigue siendo
+                # el reeval guardado, n=r_final).
+                _, at, _ = _eval(cfg)
+                print(f"[optimo] {m:14} TTS={np.nanmean(tts):7.1f}d  "
+                      f"atenciones={np.nanmean(at):7.0f}  (TTS reeval n={n}; throughput re-simulado n={args.r})",
+                      flush=True)
+            else:
+                at = _arr_desde_stats(at_mean, float(at_sd or 0.0), n)
+                print(f"[optimo] {m:14} TTS={np.nanmean(tts):7.1f}d  "
+                      f"atenciones={np.nanmean(at):7.0f}  (reeval guardado, n={n})", flush=True)
         else:
             tts, at, n_to = _eval(cfg)
             aviso = f"  ⚠ {n_to} timeouts" if n_to else ""
