@@ -225,19 +225,13 @@ def fig_tts_bars(esc, out):
 def fig_pareto(esc, pareto, out):
     from adjustText import adjust_text
     fig, ax = plt.subplots(figsize=(13, 8.4))
-    pe = sorted([x for x in esc if x["escenario"] in pareto
-                 and np.isfinite(x["atenciones_media"])],
-                key=lambda x: x["atenciones_media"])
-    if len(pe) > 1:
-        ax.plot([x["atenciones_media"] for x in pe], [x["tts_media"] for x in pe],
-                ls="--", color=GREEN, lw=1.6, alpha=0.55, zorder=1)
     texts, xs, ys = [], [], []
     for x in esc:
         at = x["atenciones_media"]
         if not np.isfinite(at): continue
         c = color_of(x["tipo"]); mk = "o" if x["tipo"] == "optimo" else "s"
-        ax.scatter(at, x["tts_media"], s=230, marker=mk, color=c, zorder=3,
-                   edgecolor="white", linewidth=1.6)
+        ax.scatter(at, x["tts_media"], s=170, marker=mk, color=c, zorder=3,
+                   alpha=0.85, edgecolor="white", linewidth=1.4)
         xs.append(at); ys.append(x["tts_media"])
         texts.append(ax.text(at, x["tts_media"], f"{disp(x['escenario'])} · {x['tts_media']:.0f} d",
                              fontsize=11, fontweight="bold", color="#1a1a1a"))
@@ -250,8 +244,6 @@ def fig_pareto(esc, pareto, out):
                 arrowprops=dict(arrowstyle="-", color="#777777", lw=0.9))
     import matplotlib.patches as mp
     h = [mp.Patch(color=BLUE, label="Optimal (algorithm)"), mp.Patch(color=RED, label="Manual")]
-    if len(pe) > 1:
-        h.append(plt.Line2D([], [], ls="--", color=GREEN, label="non-dominated set (observed)"))
     ax.legend(handles=h, loc="center", framealpha=0.96, fontsize=11)
     ax.set_xlabel("Patients served (total attentions)   →   more = better", fontsize=12)
     ax.set_ylabel("TTS — time in system [days]   ←   less = better", fontsize=12)
