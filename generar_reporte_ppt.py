@@ -132,12 +132,14 @@ def cargar_modulos(res_dir):
     return data
 
 
-def _curva_media(curvas, n_grid=60):
+def _curva_media(curvas, n_grid=60, xcap=None):
     xs = [np.array([p[0] for p in c], float) for c in curvas if len(c) > 1]
     ys = [np.array([p[1] for p in c], float) for c in curvas if len(c) > 1]
     if not xs:
         return None
     xmin = max(x.min() for x in xs); xmax = min(x.max() for x in xs)
+    if xcap is not None:
+        xmax = min(xmax, float(xcap))
     if xmax <= xmin:
         return None
     grid = np.linspace(xmin, xmax, n_grid)
@@ -150,12 +152,12 @@ def _curva_media(curvas, n_grid=60):
 
 def fig_convergencia(data, out):
     fig, axes = plt.subplots(1, 2, figsize=(13.5, 5.8))
-    for ax, (xlab, conv, scale, ttl) in zip(axes, [
-            ("Simulator evaluations", "conv_eval", 1.0, "by evaluations"),
-            ("Compute time [hours]", "conv_time", 3600.0, "by compute time")]):
+    for ax, (xlab, conv, scale, ttl, xcap) in zip(axes, [
+            ("Simulator evaluations", "conv_eval", 1.0, "by evaluations", 150.0),
+            ("Compute time [hours]", "conv_time", 3600.0, "by compute time", None)]):
         for m, regs in sorted(data.items()):
             curvas = [[[p[0] / scale, p[1]] for p in r[conv]] for r in regs if r.get(conv)]
-            cm = _curva_media(curvas)
+            cm = _curva_media(curvas, xcap=xcap)
             if cm is None:
                 continue
             g, mu, sd = cm; c = COLORS_MOD.get(m, "#333")
@@ -163,6 +165,8 @@ def fig_convergencia(data, out):
             ax.fill_between(g, mu - sd, mu + sd, color=c, alpha=0.12)
         ax.set_xlabel(xlab); ax.set_ylabel("Best objective — TTS [days]  (lower=better)")
         ax.set_title(ttl); ax.grid(alpha=0.3); ax.legend(fontsize=9, framealpha=0.9)
+        if xcap is not None:
+            ax.set_xlim(left=0, right=xcap)
     fig.suptitle("Algorithm convergence (mean ± σ across seeds)",
                  fontsize=14, fontweight="bold")
     fig.tight_layout(rect=[0, 0, 1, 0.96])
@@ -220,7 +224,7 @@ def fig_tts_bars(esc, out):
 
 def fig_pareto(esc, pareto, out):
     from adjustText import adjust_text
-    fig, ax = plt.subplots(figsize=(12, 7.6))
+    fig, ax = plt.subplots(figsize=(13, 8.4))
     pe = sorted([x for x in esc if x["escenario"] in pareto
                  and np.isfinite(x["atenciones_media"])],
                 key=lambda x: x["atenciones_media"])
@@ -237,9 +241,12 @@ def fig_pareto(esc, pareto, out):
         xs.append(at); ys.append(x["tts_media"])
         texts.append(ax.text(at, x["tts_media"], f"{disp(x['escenario'])} · {x['tts_media']:.0f} d",
                              fontsize=11, fontweight="bold", color="#1a1a1a"))
-    adjust_text(texts, x=xs, y=ys, ax=ax, expand=(2.3, 2.9),
-                force_text=(1.1, 1.5), force_static=(0.4, 0.6),
-                only_move={"text": "xy"},
+    ax.margins(x=0.18, y=0.20)
+    adjust_text(texts, x=xs, y=ys, ax=ax, expand=(3.4, 4.2),
+                force_text=(1.8, 2.4), force_static=(0.6, 0.9),
+                force_explode=(0.8, 1.2), force_pull=(0.005, 0.005),
+                max_move=None, iter_lim=2000,
+                only_move={"text": "xy", "static": "xy", "explode": "xy"},
                 arrowprops=dict(arrowstyle="-", color="#777777", lw=0.9))
     import matplotlib.patches as mp
     h = [mp.Patch(color=BLUE, label="Optimal (algorithm)"), mp.Patch(color=RED, label="Manual")]
@@ -250,8 +257,8 @@ def fig_pareto(esc, pareto, out):
     ax.set_ylabel("TTS — time in system [days]   ←   less = better", fontsize=12)
     ax.set_title("Observed results: TTS vs throughput\n"
                  "(only TTS was optimized; throughput is an emergent outcome)")
-    # margins so labels don't hit the frame
-    ax.margins(x=0.10, y=0.12)
+    # margins so labels don't hit the frame (wider to spread the algorithm cluster)
+    ax.margins(x=0.18, y=0.20)
     # "better" = bottom-right (less wait AND more patients) — arrow points down-right
     ax.annotate("", xy=(0.62, 0.09), xytext=(0.42, 0.24), xycoords="axes fraction",
                 arrowprops=dict(arrowstyle="->", color=GREEN, lw=2.4))
@@ -554,10 +561,14 @@ def main():
         s = blank(prs)
         _title(s, "Algorithm convergence (sample efficiency)")
         _img(s, f_conv, 0.3, 1.35, w=12.7)
-        _bullets(s, [("Best objective vs. evaluations (left) and vs. compute time (right). "
-                      "A curve that drops earlier = more sample-efficient. Empirically all "
-                      "algorithms converge despite the heteroscedastic noise.", 0)],
-                 top=6.9, size=11)
+        _bullets(s, [("Best objective vs. simulator evaluations (left) and vs. compute time (right). "
+                      "All curves are shown on a common budget of 150 simulator evaluations for a fair "
+                      "comparison. Note: SK-Adaptive uses adaptive replication (more replications in "
+                      "high-variance regions), so it spends a variable number of simulator runs per trial "
+                      "and would otherwise reach ~175-237; it is truncated at the shared 150-evaluation "
+                      "budget. A curve that drops earlier = more sample-efficient; all algorithms converge "
+                      "despite the heteroscedastic noise.", 0)],
+                 top=6.75, size=11)
         s = blank(prs)
         _title(s, "Computational cost — execution time")
         _img(s, f_texec, 0.4, 1.5, w=8.0)
