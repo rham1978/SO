@@ -572,6 +572,99 @@ def main():
             ("and the choice of a sample-efficient method.", 1),
         ], left=8.7, top=1.6, w=4.4, size=12)
 
+    # 8c) Optimization methods — flow diagram per method
+    diag_dir = os.path.join(args.figdir, "metodos")
+    if not os.path.isdir(diag_dir) or not any(
+            f.startswith("diag_") for f in os.listdir(diag_dir)):
+        import sys as _sys
+        import fig_diagramas_metodos as fdm
+        _argv = _sys.argv
+        _sys.argv = ["fig_diagramas_metodos.py", "--out", diag_dir]
+        try:
+            fdm.main()
+        finally:
+            _sys.argv = _argv
+
+    # intro: methods overview + published-vs-own mapping
+    s = blank(prs)
+    _title(s, "Optimization methods — how each one works",
+           "Same simulator, objective (TTS), 12-var mixed space, 15 seeds, ~150-eval budget, "
+           "incumbent re-evaluated n=50")
+    _table(s, [
+        ["Method", "Surrogate", "Acquisition / step", "Reference", "Published / own"],
+        ["M4 SMAC-GP+EI", "Gaussian Process", "Expected Improvement", "Jones+1998 / SMAC3", "Published"],
+        ["M4RF SMAC-RF", "Random Forest", "Expected Improvement", "Hutter+2011", "Published"],
+        ["M7 SMAC-SK", "Stochastic Kriging", "Expected Improvement", "Ankenman+2010 + SMAC3", "OWN integration"],
+        ["M8 SK-Adaptive", "Stochastic Kriging", "EI + adaptive replication", "Ankenman+2010; Chen+2012", "OWN"],
+        ["M10 SK-KGCP", "Stochastic Kriging", "Knowledge Gradient (KGCP)", "Frazier+2009; Scott+2011", "OWN"],
+        ["M13 SPSA", "— (none)", "SPSA gradient (2 evals/iter)", "Spall 1992/1998", "Published"],
+        ["M11 ASTRO-DF", "local linear model", "trust-region + Cauchy", "Shashaani+2018", "Published (failed)"],
+    ], 0.25, 1.45, 12.85, 4.4, fontsize=10)
+    _bullets(s, [("The SMAC + Stochastic-Kriging models (M7/M8/M10) are an original integration: "
+                  "SMAC3 ships only RF and GP surrogates — the SK surrogate (heteroscedastic, with a "
+                  "per-point variance side-channel) and the KGCP acquisition were built for this work.", 0)],
+             top=6.15, size=12)
+
+    METHOD_SLIDES = [
+        ("M4 · SMAC-GP+EI", "Bayesian optimization (GP surrogate + EI)", "diag_M4_SMAC_GP.png", [
+            ("Variables: ConfigSpace mixed (Integer + Float native).", 0),
+            ("Surrogate: Gaussian Process, homoscedastic Ky = K + σ²·I.", 0),
+            ("Acquisition: Expected Improvement (greedy).", 0),
+            ("Reference: Jones+1998; framework SMAC3 (Lindauer+2022).", 0),
+            ("Status: published method.", 0),
+        ]),
+        ("M4RF · SMAC-RF", "Bayesian optimization (Random Forest — SMAC default)", "diag_M4RF_SMAC_RF.png", [
+            ("Variables: ConfigSpace mixed; RF handles mixed/conditional natively.", 0),
+            ("Surrogate: Random Forest (uncertainty from tree spread).", 0),
+            ("Acquisition: Expected Improvement.", 0),
+            ("Reference: Hutter+2011 (SMAC); Breiman 2001.", 0),
+            ("Status: published method (SMAC HPO default).", 0),
+        ]),
+        ("M7 · SMAC-SK  (own proposal)", "SMAC3 with a custom Stochastic-Kriging surrogate", "diag_M7_SMAC_SK.png", [
+            ("Variables: normalized [0,1]¹², integers rounded.", 0),
+            ("Surrogate: Stochastic Kriging, heteroscedastic Ky = K + diag(σ²/n).", 0),
+            ("Link: SMAC API passes only means → variance travels via a global store.", 0),
+            ("Effect: noisy points weigh LESS → robust to saturation.", 0),
+            ("Reference: Ankenman+2010 (SK) + SMAC3. Status: OWN integration.", 0),
+        ]),
+        ("M8 · SK-Adaptive", "Stochastic Kriging + adaptive replication", "diag_M8_SK_Adaptive.png", [
+            ("Variables: normalized [0,1]¹², integers rounded.", 0),
+            ("Replication policy n(x): warmup → n_min; then percentile of σ²(x).", 0),
+            ("Noisy region → more replications; stable → fewer (budget saving).", 0),
+            ("Surrogate/acquisition: SK + EI (same as M7).", 0),
+            ("Reference: Ankenman+2010; Chen+2012. Status: OWN.", 0),
+        ]),
+        ("M10 · SK-KGCP", "Stochastic Kriging + Knowledge Gradient (1-step lookahead)", "diag_M10_SK_KGCP.png", [
+            ("Variables: normalized [0,1]¹², integers rounded.", 0),
+            ("Surrogate: heteroscedastic SK (= M7).", 0),
+            ("Acquisition: KGCP, Monte-Carlo (n_mc=64, n_cand=500).", 0),
+            ("Measures gain to the GLOBAL incumbent, not just at x (vs EI greedy).", 0),
+            ("Reference: Frazier+2009; Scott+2011. Status: OWN.", 0),
+        ]),
+        ("M13 · SPSA", "Gradient stochastic approximation — 2 evals/iter, independent of d", "diag_M13_SPSA.png", [
+            ("Variables: iterates in [0,1]¹² continuous; integers rounded.", 0),
+            ("Gradient from 2 evaluations regardless of dimension d=12.", 0),
+            ("ĝ = (y⁺−y⁻)/(2·ck·Δk); x ← clip(x − ak·ĝ).", 0),
+            ("Defaults SimOpt: α=0.602, γ=0.101, n_reps=30, A=10.", 0),
+            ("Reference: Spall 1992/1998. Status: published method.", 0),
+        ]),
+        ("M11 · ASTRO-DF  (did not complete)", "Trust-region derivative-free with adaptive sampling", "diag_M11_ASTRODF.png", [
+            ("Variables: normalized [0,1]¹²; adaptive sampling Ñ(x) ∝ σ̂/Δ².", 0),
+            ("Local linear model in B(xk;Δ) → Cauchy step → accept/reject via ρ̂.", 0),
+            ("Expands/contracts trust region Δ; convergence wp1 guaranteed.", 0),
+            ("Reference: Shashaani+2018 (ASTRO-DF).", 0),
+            ("Status in this batch: FAILED (solver deadlock); pending re-run.", 0),
+        ]),
+    ]
+    for name, sub, fname, bullets in METHOD_SLIDES:
+        fpath = os.path.join(diag_dir, fname)
+        if not os.path.exists(fpath):
+            continue
+        s = blank(prs)
+        _title(s, name, sub)
+        _img(s, fpath, 0.3, 1.45, h=5.5)
+        _bullets(s, bullets, left=9.55, top=1.7, w=3.7, size=12)
+
     # 9) Conclusions
     s = blank(prs)
     _title(s, "Conclusions and recommendation")
