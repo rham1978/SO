@@ -422,8 +422,9 @@ def main():
                    help=f"Número de macro-réplicas (default {N_SEEDS}).")
     p.add_argument("--n_cores",  type=int, default=min(9, os.cpu_count() or 4),
                    help="Procesos paralelos entre seeds (default: min(9, cpu_count)).")
-    p.add_argument("--out",      default="resultados_astrodf_rs",
-                   help="Directorio de salida (default: resultados_astrodf_rs/).")
+    _default_out = r"C:\Users\raraneda\Desktop\Codigos Sim\IFORS\pipeline_out\resultados"
+    p.add_argument("--out",      default=_default_out,
+                   help="Directorio de salida.")
     args = p.parse_args()
 
     logging.basicConfig(
