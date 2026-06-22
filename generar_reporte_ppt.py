@@ -665,6 +665,58 @@ def main():
         _img(s, fpath, 0.3, 1.45, h=5.5)
         _bullets(s, bullets, left=9.55, top=1.7, w=3.7, size=12)
 
+    # 8d) How Stochastic Kriging works (standalone)
+    sk_diag = os.path.join(diag_dir, "diag_stochastic_kriging.png")
+    if not os.path.exists(sk_diag):
+        import sys as _sys
+        import fig_stochastic_kriging as fsk
+        _argv = _sys.argv
+        _sys.argv = ["fig_stochastic_kriging.py", "--out", diag_dir]
+        try:
+            fsk.main()
+        finally:
+            _sys.argv = _argv
+    if os.path.exists(sk_diag):
+        s = blank(prs)
+        _title(s, "How Stochastic Kriging works (standalone)",
+               "The surrogate behind M7 / M8 / M10 — separates spatial from simulation noise")
+        _img(s, sk_diag, 0.3, 1.45, h=5.5)
+        _bullets(s, [
+            ("SK = Kriging/GP + a noise term that is diagonal and per-point: V(x)/n.", 0),
+            ("Two variance sources: spatial Σ_M (GP) and intrinsic Σ_ε (simulation).", 0),
+            ("Replications estimate V(x); noisy points weigh less.", 0),
+            ("Output: smooth mean ŷ(x₀) + model uncertainty MSE(x₀) → feeds EI/KG.", 0),
+            ("vs. standard GP: Σ = Σ_M + σ²·I (single noise level).", 0),
+            ("Ref: Ankenman, Nelson & Staum (2010), Oper. Res.", 0),
+        ], left=9.55, top=1.7, w=3.7, size=12)
+
+    # 8e) Mixed-integer space & scope of convergence
+    s = blank(prs)
+    _title(s, "Mixed-integer space & scope of convergence",
+           "Why integer handling matters, and empirical vs. formal convergence")
+    _table(s, [
+        ["Method", "Variable handling", "Formal convergence?"],
+        ["M4 SMAC-GP+EI", "mixed native (ConfigSpace)", "Weak / asymptotic (noisy EI consistency)"],
+        ["M4RF SMAC-RF", "mixed native (RF)", "Heuristic (no optimum guarantee)"],
+        ["M7 SMAC-SK", "normalized + rounding", "Heuristic / consistency only"],
+        ["M8 SK-Adaptive", "normalized + rounding", "Heuristic / consistency only"],
+        ["M10 SK-KGCP", "normalized + rounding", "Partial (KG consistent for finite sets)"],
+        ["M13 SPSA", "normalized + rounding", "Yes, a.s. to local min (assumes smooth f)"],
+        ["M11 ASTRO-DF", "normalized + rounding", "Yes, w.p.1 to stationary pt (failed to run)"],
+        ["RS", "normalized + rounding", "Trivial (in prob., infinitely slow)"],
+    ], 0.3, 1.5, 12.7, 3.7, fontsize=10)
+    _bullets(s, [
+        ("8 of 12 variables are integer (slots, staff, lead days); only SMAC handles "
+         "them natively — the rest relax to [0,1]¹² and round.", 0),
+        ("Rounding breaks smoothness assumptions: SPSA gradients vanish on integer "
+         "plateaus; SK/GP kernels assume a continuous metric; budget is wasted on "
+         "duplicate rounded configs; the optimum must be a deployable integer point.", 1),
+        ("The curves show EMPIRICAL convergence (incumbent stabilizes) — not a proof. "
+         "With a fixed ~150-eval budget, no asymptotic guarantee is actually attained. "
+         "What we claim is a statistically significant, stable improvement (15 seeds, "
+         "CRN, n=50 re-eval, Welch+Holm p ≪ 0.001), not convergence to the optimum.", 0),
+    ], left=0.4, top=5.45, w=12.6, size=11)
+
     # 9) Conclusions
     s = blank(prs)
     _title(s, "Conclusions and recommendation")
