@@ -15,6 +15,7 @@ analisis_out/
 *.json
 *.png
 *.pptx
+*.docx
 *.xlsx
 *.zip
 *.7z
