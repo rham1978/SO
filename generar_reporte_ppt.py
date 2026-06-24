@@ -160,9 +160,18 @@ def fig_convergencia(data, out):
             cm = _curva_media(curvas, xcap=xcap)
             if cm is None:
                 continue
-            g, mu, sd = cm; c = COLORS_MOD.get(m, "#333")
-            ax.plot(g, mu, color=c, lw=2.2, label=SHORT.get(m, m))
-            ax.fill_between(g, mu - sd, mu + sd, color=c, alpha=0.12)
+            g, mu, sd = cm
+            is_hl = (m == "M7")   # SMAC-SK = protagonist
+            # avoid green clash: SMAC-SK owns green, so recolor M8 (was green)
+            base_c = "#ff7f0e" if m == "M8" else COLORS_MOD.get(m, "#333")
+            c = GREEN if is_hl else base_c
+            lw = 3.6 if is_hl else 2.0
+            z = 6 if is_hl else 3
+            lbl = (SHORT.get(m, m) + " (recommended)") if is_hl else SHORT.get(m, m)
+            ax.plot(g, mu, color=c, lw=lw, label=lbl, zorder=z,
+                    alpha=1.0 if is_hl else 0.85)
+            ax.fill_between(g, mu - sd, mu + sd, color=c,
+                            alpha=0.16 if is_hl else 0.10, zorder=z - 1)
         ax.set_xlabel(xlab); ax.set_ylabel("Best objective — TTS [days]  (lower=better)")
         ax.set_title(ttl); ax.grid(alpha=0.3); ax.legend(fontsize=9, framealpha=0.9)
         if xcap is not None:
