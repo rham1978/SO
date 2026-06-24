@@ -97,7 +97,8 @@ def main():
                                  fontsize=11, fontweight="bold", zorder=7))
         xs.append(at); ys.append(tts)
     for i, x in enumerate(manual, 1):
-        tag = f"Man {i}"
+        # el baseline se nombra explícitamente "Current"; el resto anónimo
+        tag = "Current" if x["escenario"] == "Current" else f"Man {i}"
         man_map[tag] = (x["escenario"], x["tts_media"], x["atenciones_media"])
         at, tts = x["atenciones_media"], x["tts_media"]
         ax.scatter(at, tts, s=180, marker="s", color=RED, zorder=3,
