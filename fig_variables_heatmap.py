@@ -135,7 +135,7 @@ def main():
     x_opt = n_man + (ncol - n_man - 1) / 2.0
     ax.text(x_man, -3.05, "MANUAL", ha="center", va="bottom",
             fontsize=16, fontweight="bold", color=RED)
-    ax.text(x_opt, -3.05, "OPTIMIZATION MODELS", ha="center", va="bottom",
+    ax.text(x_opt, -3.05, "ALGORITHMS", ha="center", va="bottom",
             fontsize=16, fontweight="bold", color=BLUE)
     ax.plot([-0.3, n_man - 0.7], [-2.8, -2.8], color=RED, lw=2.5,
             clip_on=False)
