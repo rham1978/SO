@@ -223,7 +223,7 @@ bullets(s, [
 ], size=19)
 
 # 8 Literature Review
-s = slide(); title(s, "What the world has tried — and where it stops", "Literature Review")
+s = slide(); title(s, "Fundamental pillars", "Literature Review")
 bullets(s, [
     "DES is a central tool for representing patient flows, queues, operational rules (Monks & Harper, 2025).",
     "Simulation Optimization (SO): optimize a black-box stochastic objective via simulation (Amaran et al., 2016).",
