@@ -206,8 +206,14 @@ bullets(s, [
     "Research question: how do I optimize this process so fewer patients wait?",
 ], top=5.45, w=12.4, size=15, h=1.6)
 
+# 6b System model (BPMN) — the modeling that reveals the challenges
+s = slide(); title(s, "The scene: modeling the gynecology macro-process",
+                   "BPMN model of the system — the source of the five challenges")
+img(s, f"{FIG}/macro.png", 1.0, 1.5, w=11.3, h=5.3)
+
 # 7 Challenges
-s = slide(); title(s, "Five clues that break the usual tools", "Challenges — no off-the-shelf method handles all five")
+s = slide(); title(s, "Five clues that break the usual tools",
+                   "Challenges that emerge from the model — no off-the-shelf method handles all five")
 bullets(s, [
     "Stochastic demand: patient arrivals, no-shows, cancellations.",
     "Mixed integer–continuous decision space.",
@@ -253,11 +259,7 @@ bullets(s, [
 s = slide(); title(s, "How SMAC-SK works: simulate → optimize → prescribe", "Proposed Framework")
 framework_diagram(s)
 
-# 12 Macro process
-s = slide(); title(s, "The scene: the gynecology macro-process", "Results")
-img(s, f"{FIG}/macro.png", 1.0, 1.5, w=11.3, h=5.3)
-
-# 13 Scheduling
+# 12 Scheduling
 s = slide(); title(s, "The levers we can actually pull", "Specialist hour scheduling")
 img(s, f"{FIG}/diagrama_prog.png", 0.6, 1.5, w=6.0, h=5.0)
 img(s, f"{FIG}/grafico_dist_por.png", 6.9, 1.5, w=6.0, h=5.0)
