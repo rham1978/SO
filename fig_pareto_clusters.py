@@ -83,29 +83,28 @@ def main():
         tag = f"Alg {i}"
         alg_map[tag] = (g.disp(x["escenario"]), x["tts_media"], x["atenciones_media"])
         at, tts = x["atenciones_media"], x["tts_media"]
-        if g.modkey(x["escenario"]) == "M7":   # SMAC-SK protagonista
+        if g.modkey(x["escenario"]) == "M7":   # SMAC-SK protagonista (único rotulado)
             ax.scatter(at, tts, s=620, marker="*", color=GREEN, zorder=5,
                        edgecolor="white", linewidth=1.6)
             ax.scatter(at, tts, s=1700, marker="o", facecolor="none",
                        edgecolor=GREEN, linewidth=1.8, alpha=0.5, zorder=4)
-            texts.append(ax.text(at, tts, f"{tag} = SMAC-SK", color=GREEN,
+            texts.append(ax.text(at, tts, "SMAC-SK", color=GREEN,
                                  fontsize=12, fontweight="bold", zorder=7))
+            xs.append(at); ys.append(tts)
         else:
             ax.scatter(at, tts, s=180, marker="o", color=BLUE, zorder=3,
                        edgecolor="white", linewidth=1.3)
-            texts.append(ax.text(at, tts, tag, color="#10324f",
-                                 fontsize=11, fontweight="bold", zorder=7))
-        xs.append(at); ys.append(tts)
     for i, x in enumerate(manual, 1):
-        # el baseline se nombra explícitamente "Current"; el resto anónimo
+        # solo el baseline se nombra ("Current"); el resto queda sin etiqueta
         tag = "Current" if x["escenario"] == "Current" else f"Man {i}"
         man_map[tag] = (x["escenario"], x["tts_media"], x["atenciones_media"])
         at, tts = x["atenciones_media"], x["tts_media"]
         ax.scatter(at, tts, s=180, marker="s", color=RED, zorder=3,
                    edgecolor="white", linewidth=1.3)
-        texts.append(ax.text(at, tts, tag, color="#5a1414",
-                             fontsize=11, fontweight="bold", zorder=7))
-        xs.append(at); ys.append(tts)
+        if x["escenario"] == "Current":
+            texts.append(ax.text(at, tts, "Current", color="#5a1414",
+                                 fontsize=11, fontweight="bold", zorder=7))
+            xs.append(at); ys.append(tts)
     adjust_text(texts, x=xs, y=ys, ax=ax,
                 expand=(2.2, 2.6), force_text=(0.8, 1.1),
                 only_move={"text": "xy", "static": "xy"},
