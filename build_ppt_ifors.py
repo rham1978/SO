@@ -212,7 +212,7 @@ s = slide(); title(s, "The scene: modeling the gynecology macro-process",
 img(s, f"{FIG}/macro.png", 1.0, 1.5, w=11.3, h=5.3)
 
 # 7 Challenges
-s = slide(); title(s, "Five clues that break the usual tools",
+s = slide(); title(s, "Five features to take into account",
                    "Challenges that emerge from the model — no off-the-shelf method handles all five")
 bullets(s, [
     "Stochastic demand: patient arrivals, no-shows, cancellations.",
