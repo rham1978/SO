@@ -110,14 +110,7 @@ def main():
                 only_move={"text": "xy", "static": "xy"},
                 arrowprops=dict(arrowstyle="-", color="#888888", lw=0.8))
 
-    # ── leyenda ───────────────────────────────────────────────────────
-    h = [plt.Line2D([], [], marker="*", color="w", markerfacecolor=GREEN,
-                    markersize=18, label="SMAC-SK (recommended)"),
-         plt.Line2D([], [], marker="o", color="w", markerfacecolor=BLUE,
-                    markersize=12, label="Algorithms (Alg 1–6)"),
-         plt.Line2D([], [], marker="s", color="w", markerfacecolor=RED,
-                    markersize=12, label="Manual (Man 1–4)")]
-    ax.legend(handles=h, loc="center", framealpha=0.96, fontsize=12)
+    # (sin leyenda — los clusters y la estrella verde ya identifican los grupos)
 
     # ── "better" arrow ────────────────────────────────────────────────
     ax.annotate("", xy=(0.60, 0.10), xytext=(0.40, 0.25), xycoords="axes fraction",
