@@ -222,19 +222,35 @@ def fig_tts_bars(esc, out):
     fig.savefig(p, dpi=220, facecolor="white"); plt.close(); return p
 
 
-def fig_pareto(esc, pareto, out):
+def fig_pareto(esc, pareto, out, highlight="M7"):
     from adjustText import adjust_text
     fig, ax = plt.subplots(figsize=(13, 8.4))
     texts, xs, ys = [], [], []
+    hl_xy = None
     for x in esc:
         at = x["atenciones_media"]
         if not np.isfinite(at): continue
-        c = color_of(x["tipo"]); mk = "o" if x["tipo"] == "optimo" else "s"
-        ax.scatter(at, x["tts_media"], s=170, marker=mk, color=c, zorder=3,
-                   alpha=0.85, edgecolor="white", linewidth=1.4)
+        is_hl = (modkey(x["escenario"]) == highlight)
+        if is_hl:
+            # protagonist (recommended method) — green star, larger
+            ax.scatter(at, x["tts_media"], s=560, marker="*", color=GREEN, zorder=5,
+                       edgecolor="white", linewidth=1.6)
+            hl_xy = (at, x["tts_media"])
+            lab = f"{disp(x['escenario'])} · {x['tts_media']:.0f} d  (recommended)"
+            tc = GREEN
+        else:
+            c = color_of(x["tipo"]); mk = "o" if x["tipo"] == "optimo" else "s"
+            ax.scatter(at, x["tts_media"], s=170, marker=mk, color=c, zorder=3,
+                       alpha=0.85, edgecolor="white", linewidth=1.4)
+            lab = f"{disp(x['escenario'])} · {x['tts_media']:.0f} d"
+            tc = "#1a1a1a"
         xs.append(at); ys.append(x["tts_media"])
-        texts.append(ax.text(at, x["tts_media"], f"{disp(x['escenario'])} · {x['tts_media']:.0f} d",
-                             fontsize=11, fontweight="bold", color="#1a1a1a"))
+        texts.append(ax.text(at, x["tts_media"], lab,
+                             fontsize=11, fontweight="bold", color=tc))
+    if hl_xy is not None:
+        # subtle halo so the protagonist pops out of the cluster
+        ax.scatter(*hl_xy, s=1500, marker="o", facecolor="none",
+                   edgecolor=GREEN, linewidth=1.6, alpha=0.45, zorder=4)
     ax.margins(x=0.18, y=0.20)
     adjust_text(texts, x=xs, y=ys, ax=ax, expand=(3.4, 4.2),
                 force_text=(1.8, 2.4), force_static=(0.6, 0.9),
@@ -243,7 +259,10 @@ def fig_pareto(esc, pareto, out):
                 only_move={"text": "xy", "static": "xy", "explode": "xy"},
                 arrowprops=dict(arrowstyle="-", color="#777777", lw=0.9))
     import matplotlib.patches as mp
-    h = [mp.Patch(color=BLUE, label="Optimal (algorithm)"), mp.Patch(color=RED, label="Manual")]
+    h = [plt.Line2D([], [], marker="*", color="w", markerfacecolor=GREEN,
+                    markersize=18, label="SMAC-SK (recommended)"),
+         mp.Patch(color=BLUE, label="Other algorithms"),
+         mp.Patch(color=RED, label="Manual")]
     ax.legend(handles=h, loc="center", framealpha=0.96, fontsize=11)
     ax.set_xlabel("Patients served (total attentions)   →   more = better", fontsize=12)
     ax.set_ylabel("TTS — time in system [days]   ←   less = better", fontsize=12)
