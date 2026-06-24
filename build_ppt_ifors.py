@@ -170,7 +170,7 @@ bullets(s, ["Motivation", "Research Problem", "Literature Review", "Objective",
             "Proposed Framework", "Results", "Discussion", "References"], size=20)
 
 # 3 Motivation
-s = slide(); title(s, "Motivation")
+s = slide(); title(s, "Waiting kills — and Chile is no exception", "Motivation")
 bullets(s, [
     "Prolonged waits deteriorate patient health and increase mortality by 3.4% (Martinez et al., 2019).",
     "Prolonged waits reduce wages and labor productivity (OECD, 2026).",
@@ -178,7 +178,7 @@ bullets(s, [
 img(s, f"{FIG}/listas_espera.png", 3.85, 3.15, w=5.6, h=3.9)
 
 # 4 Case Study I
-s = slide(); title(s, "Case Study")
+s = slide(); title(s, "Inside one clinic: where the bottleneck lives", "Case Study")
 bullets(s, [
     ("Institutional Relevance", 0),
     ("CRSCO is a medium-complexity public ambulatory center, a key referral hub for Macul and Peñalolén.", 1),
@@ -189,7 +189,7 @@ bullets(s, [
 ], size=17)
 
 # 5 Case Study II
-s = slide(); title(s, "Case Study")
+s = slide(); title(s, "The victim: 318 cases, up to 1,164 days waiting", "Case Study")
 bullets(s, [
     ("Waiting Time Metrics", 0),
     ("Average waiting time: 205 days; maximum recorded: 1,164 days.", 1),
@@ -198,7 +198,7 @@ bullets(s, [
 ], size=17)
 
 # 6 Problem Definition
-s = slide(); title(s, "Problem Definition")
+s = slide(); title(s, "The question: can we make fewer patients wait?", "Problem Definition")
 img(s, f"{FIG}/proceso_atencion.png", 1.8, 1.3, w=9.6, h=3.9)
 bullets(s, [
     "Absence of an analytical framework able to represent and support, in an integrated way, "
@@ -207,7 +207,7 @@ bullets(s, [
 ], top=5.45, w=12.4, size=15, h=1.6)
 
 # 7 Challenges
-s = slide(); title(s, "Challenges", "The five clues of the case — no off-the-shelf method handles all five")
+s = slide(); title(s, "Five clues that break the usual tools", "Challenges — no off-the-shelf method handles all five")
 bullets(s, [
     "Stochastic demand: patient arrivals, no-shows, cancellations.",
     "Mixed integer–continuous decision space.",
@@ -217,7 +217,7 @@ bullets(s, [
 ], size=19)
 
 # 8 Literature Review
-s = slide(); title(s, "Literature Review")
+s = slide(); title(s, "What the world has tried — and where it stops", "Literature Review")
 bullets(s, [
     "DES is a central tool for representing patient flows, queues, operational rules (Monks & Harper, 2025).",
     "Simulation Optimization (SO): optimize a black-box stochastic objective via simulation (Amaran et al., 2016).",
@@ -227,7 +227,7 @@ bullets(s, [
 ], size=16)
 
 # 9 Methodological Gap
-s = slide(); title(s, "The Methodological Gap", "Five conditions required to address the problem")
+s = slide(); title(s, "The gap: nobody covers all five at once", "The Methodological Gap")
 table(s, [
     ["", "Stochastic DES", "Hetero-scedasticity", "Mixed-integer", "Adaptive Repl.", "Conv. Guarantees"],
     ["DFO continuous", "✓", "✗", "✗", "Partial", "✓"],
@@ -241,7 +241,7 @@ bullets(s, [("✓ satisfies   ✗ does not satisfy   Partial = partial. The empt
         top=6.1, size=12, h=0.8)
 
 # 10 Objective
-s = slide(); title(s, "Objective")
+s = slide(); title(s, "The suspect: SMAC-SK", "Objective")
 bullets(s, [
     "Design, formulate, and evaluate a prescriptive decision-support framework for capacity "
     "planning in Minimally Invasive Gynecology.",
@@ -250,38 +250,43 @@ bullets(s, [
 ], top=1.8, w=12.2, size=19)
 
 # 11 Proposed Framework
-s = slide(); title(s, "Proposed Framework")
+s = slide(); title(s, "How SMAC-SK works: simulate → optimize → prescribe", "Proposed Framework")
 framework_diagram(s)
 
 # 12 Macro process
-s = slide(); title(s, "Macro process")
+s = slide(); title(s, "The scene: the gynecology macro-process", "Results")
 img(s, f"{FIG}/macro.png", 1.0, 1.5, w=11.3, h=5.3)
 
 # 13 Scheduling
-s = slide(); title(s, "Specialist hour scheduling diagram")
+s = slide(); title(s, "The levers we can actually pull", "Specialist hour scheduling")
 img(s, f"{FIG}/diagrama_prog.png", 0.6, 1.5, w=6.0, h=5.0)
 img(s, f"{FIG}/grafico_dist_por.png", 6.9, 1.5, w=6.0, h=5.0)
 
 # 14 Results: Optimized vs Manual  (SMAC-SK protagonist)
-s = slide(); title(s, "Results: Algorithms vs. Manual",
+s = slide(); title(s, "Caught: algorithms beat every manual policy",
                    "SMAC-SK (green star) is the recommended method")
 img(s, f"{FIG}/fig_pareto.png", 2.35, 1.5, h=5.6)
 
+# 14b Pairwise hypothesis tests (all vs all)
+s = slide(); title(s, "Who really differs? All-vs-all tests",
+                   "Welch t-test, Holm-corrected — top algorithms are statistically tied")
+img(s, f"{FIG}/fig_pairwise_tts.png", 2.0, 1.55, h=5.6)
+
 # 15 Parameter Comparison
-s = slide(); title(s, "Parameter Comparison: Optimized vs. Manual")
+s = slide(); title(s, "What SMAC-SK does differently", "Parameter comparison")
 img(s, f"{FIG}/fig_variables_heatmap.png", 1.7, 1.6, h=5.6)
 
 # 16 Convergence
-s = slide(); title(s, "Algorithm convergence (sample efficiency)",
-                   "Green = SMAC-SK; compare against SMAC without SK — the SK term, not luck, buys the gain")
+s = slide(); title(s, "The proof it was not luck: SK earns its place",
+                   "Green = SMAC-SK; compare against SMAC without SK — the SK term drives the gain")
 img(s, f"{FIG}/fig_convergencia.png", 0.5, 1.7, w=12.3)
 
 # 17 Computational cost
-s = slide(); title(s, "Computational cost — execution time")
+s = slide(); title(s, "The price: why sample-efficiency matters", "Computational cost")
 img(s, f"{FIG}/fig_tiempo_exec.png", 2.7, 1.6, w=8.0)
 
 # 18 Discussion
-s = slide(); title(s, "Discussion — Results")
+s = slide(); title(s, "Case closed — but the guarantees do not transfer", "Discussion")
 bullets(s, [
     "Main result: SMAC-SK reduced TTS from 263 to 177 days (−33%) while patients served "
     "rose from 1,148 to ~2,180 (+90%).   [verificar 164 vs 177 del deck]",
@@ -294,7 +299,7 @@ bullets(s, [
 ], size=15)
 
 # 19 Future Work
-s = slide(); title(s, "Future Work")
+s = slide(); title(s, "The open case: theory the thesis will build", "Future Work")
 bullets(s, [
     "Algorithm design: a DFO method for mixed-integer variables with an adaptive "
     "replication-allocation mechanism driven by local variance estimation σ̂²(x).",
