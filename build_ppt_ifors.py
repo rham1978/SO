@@ -263,7 +263,7 @@ img(s, f"{FIG}/diagrama_prog.png", 0.6, 1.5, w=6.0, h=5.0)
 img(s, f"{FIG}/grafico_dist_por.png", 6.9, 1.5, w=6.0, h=5.0)
 
 # 14 Results: Optimized vs Manual  (SMAC-SK protagonist)
-s = slide(); title(s, "Results: Optimized vs. Manual",
+s = slide(); title(s, "Results: Algorithms vs. Manual",
                    "SMAC-SK (green star) is the recommended method")
 img(s, f"{FIG}/fig_pareto.png", 2.35, 1.5, h=5.6)
 
