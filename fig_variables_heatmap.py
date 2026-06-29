@@ -101,7 +101,7 @@ def main():
                 norm[i, j] = (float(v) - lo) / (hi - lo)
 
     # ── Figura ────────────────────────────────────────────────────────────
-    cmap = plt.get_cmap("RdYlGn")  # green=min (conservative), red=max (aggressive)
+    cmap = plt.get_cmap("coolwarm")  # blue=min (low), red=max (high)
     fig, ax = plt.subplots(figsize=(16, 9))
     im = ax.imshow(norm, cmap=cmap, vmin=0, vmax=1, aspect="auto")
 
@@ -150,7 +150,7 @@ def main():
                  fontsize=18, fontweight="bold", y=0.99)
     fig.text(0.5, 0.02,
              "cell text = actual value   ·   color = position within each "
-             "variable's admissible range (green = min, red = max)",
+             "variable's admissible range (blue = min, red = max)",
              ha="center", fontsize=11, color="#333333")
 
     fig.tight_layout(rect=[0, 0.04, 1, 0.93])
