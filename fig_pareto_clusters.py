@@ -119,8 +119,8 @@ def main():
             color=GREEN, fontsize=12, fontweight="bold", ha="center")
 
     ax.set_xlabel("Patients served (total attentions)   →   more = better", fontsize=12)
-    ax.set_ylabel("TTS — time in system [days]   ←   less = better", fontsize=12)
-    ax.set_title("TTS vs throughput", fontsize=15, fontweight="bold")
+    ax.set_ylabel("ATS — average time in system [days]   ←   less = better", fontsize=12)
+    ax.set_title("ATS vs throughput", fontsize=15, fontweight="bold")
     ax.margins(x=0.16, y=0.18)
     ax.grid(alpha=0.25)
 

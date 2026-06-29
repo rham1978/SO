@@ -125,7 +125,7 @@ def main():
     for tick, c in zip(ax.get_xticklabels(), cols): tick.set_color(c)
     for tick, c in zip(ax.get_yticklabels(), cols): tick.set_color(c)
 
-    ax.set_title("Pairwise hypothesis tests on TTS — all vs all\n"
+    ax.set_title("Pairwise hypothesis tests on ATS — all vs all\n"
                  "Welch's t-test, Holm-corrected   (Δ = row mean − col mean, days)",
                  fontsize=12, fontweight="bold")
 

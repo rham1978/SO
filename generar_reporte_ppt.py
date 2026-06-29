@@ -172,7 +172,7 @@ def fig_convergencia(data, out):
                     alpha=1.0 if is_hl else 0.85)
             ax.fill_between(g, mu - sd, mu + sd, color=c,
                             alpha=0.16 if is_hl else 0.10, zorder=z - 1)
-        ax.set_xlabel(xlab); ax.set_ylabel("Best objective — TTS [days]  (lower=better)")
+        ax.set_xlabel(xlab); ax.set_ylabel("Best objective — ATS [days]  (lower=better)")
         ax.set_title(ttl); ax.grid(alpha=0.3); ax.legend(fontsize=9, framealpha=0.9)
         if xcap is not None:
             ax.set_xlim(left=0, right=xcap)
@@ -215,8 +215,8 @@ def fig_tts_bars(esc, out):
     for i, v in enumerate(m):
         ax.text(i, v + hi[i] + 4, f"{v:.0f} d", ha="center", fontsize=11,
                 fontweight="bold", color="#1a1a1a")
-    ax.set_ylabel("TTS — mean time in system [days]   (lower = better)")
-    ttl = "TTS by option (mean ± 95% CI)   ·   labels = mean TTS [days]"
+    ax.set_ylabel("ATS — average time in system [days]   (lower = better)")
+    ttl = "ATS by option (mean ± 95% CI)   ·   labels = mean ATS [days]"
     if n_rep:
         ttl += f"   ·   n={n_rep}"
     ax.set_title(ttl)
@@ -274,9 +274,9 @@ def fig_pareto(esc, pareto, out, highlight="M7"):
          mp.Patch(color=RED, label="Manual")]
     ax.legend(handles=h, loc="center", framealpha=0.96, fontsize=11)
     ax.set_xlabel("Patients served (total attentions)   →   more = better", fontsize=12)
-    ax.set_ylabel("TTS — time in system [days]   ←   less = better", fontsize=12)
-    ax.set_title("Observed results: TTS vs throughput\n"
-                 "(only TTS was optimized; throughput is an emergent outcome)")
+    ax.set_ylabel("ATS — average time in system [days]   ←   less = better", fontsize=12)
+    ax.set_title("Observed results: ATS vs throughput\n"
+                 "(only ATS was optimized; throughput is an emergent outcome)")
     # margins so labels don't hit the frame (wider to spread the algorithm cluster)
     ax.margins(x=0.18, y=0.20)
     # "better" = bottom-right (less wait AND more patients) — arrow points down-right
