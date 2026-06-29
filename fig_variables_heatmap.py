@@ -50,7 +50,7 @@ SHORT = {
 }
 
 # Orden de los modelos de optimización (familia SMAC, luego SK, luego gradiente)
-OPT_ORDER = ["M4", "M4RF", "M7", "M8", "M10", "M13", "M11"]
+OPT_ORDER = ["M13", "M4", "M8", "M7", "M4RF", "M10", "M11"]
 # Orden de los escenarios manuales
 MAN_ORDER = ["Current", "Management", "Mgmt+Cap", "Mgmt+Cap v2"]
 
@@ -101,7 +101,7 @@ def main():
                 norm[i, j] = (float(v) - lo) / (hi - lo)
 
     # ── Figura ────────────────────────────────────────────────────────────
-    cmap = plt.get_cmap("RdYlBu_r")
+    cmap = plt.get_cmap("RdYlGn")  # green=min (conservative), red=max (aggressive)
     fig, ax = plt.subplots(figsize=(16, 9))
     im = ax.imshow(norm, cmap=cmap, vmin=0, vmax=1, aspect="auto")
 
@@ -158,7 +158,7 @@ def main():
                  fontsize=18, fontweight="bold", y=0.99)
     fig.text(0.5, 0.02,
              "cell text = actual value   ·   color = position within each "
-             "variable's admissible range (blue = min, red = max)",
+             "variable's admissible range (green = min, red = max)",
              ha="center", fontsize=11, color="#333333")
 
     fig.tight_layout(rect=[0, 0.04, 1, 0.93])
