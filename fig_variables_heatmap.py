@@ -105,15 +105,7 @@ def main():
     fig, ax = plt.subplots(figsize=(16, 9))
     im = ax.imshow(norm, cmap=cmap, vmin=0, vmax=1, aspect="auto")
 
-    # texto en cada celda = valor real
-    for i, vk in enumerate(var_keys):
-        typ = VARIABLES[vk][2]
-        for j in range(ncol):
-            if not np.isfinite(raw[i, j]):
-                continue
-            txt = f"{raw[i, j]:.2f}" if typ == "float" else f"{int(round(raw[i, j]))}"
-            ax.text(j, i, txt, ha="center", va="center", fontsize=10,
-                    color="#111111")
+    # sin texto en celdas
 
     # ejes
     ax.set_xticks(range(ncol))
