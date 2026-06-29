@@ -50,7 +50,7 @@ SHORT = {
 }
 
 # Orden de los modelos de optimización (familia SMAC, luego SK, luego gradiente)
-OPT_ORDER = ["M4", "M4RF", "M7", "M8", "M10", "M13"]
+OPT_ORDER = ["M4", "M4RF", "M7", "M8", "M10", "M13", "M11"]
 # Orden de los escenarios manuales
 MAN_ORDER = ["Current", "Management", "Mgmt+Cap", "Mgmt+Cap v2"]
 
