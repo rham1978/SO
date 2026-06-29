@@ -101,9 +101,9 @@ def main():
                 norm[i, j] = (float(v) - lo) / (hi - lo)
 
     # ── Figura ────────────────────────────────────────────────────────────
-    cmap = plt.get_cmap("Reds")  # white=min (low), red=max (high)
+    cmap = plt.get_cmap("Reds")  # light pink=min, red=max
     fig, ax = plt.subplots(figsize=(16, 9))
-    im = ax.imshow(norm, cmap=cmap, vmin=0, vmax=1, aspect="auto")
+    im = ax.imshow(norm, cmap=cmap, vmin=-0.4, vmax=1, aspect="auto")  # vmin<0 shifts start to light pink
 
     # sin texto en celdas
 
