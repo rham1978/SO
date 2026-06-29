@@ -2,7 +2,7 @@
 % Content: Araneda & Carrasco - Prescriptive framework for specialty-care capacity planning
 \nonstopmode
 
-\def \ver {1.2}      % version number
+\def \ver {1.3}      % version number
 \def \showver {0}    % 1 = show version/build; 0 = do not show
 
 % ---- Title-page data ----
@@ -300,8 +300,14 @@
 		\textcolor{okgreen}{\cmark}\,satisfies \quad
 		\textcolor{nogray}{\xmark}\,does not satisfy \quad
 		\textcolor{ucblue}{Partial}\,partial \\[2pt]
-
 	}
+	\vspace{0.3em}
+	\begin{tcolorbox}[colback=okgreen!9,colframe=okgreen,arc=2mm,boxrule=0.8pt,
+	                  left=3mm,right=3mm,top=1.5mm,bottom=1.5mm]
+		\centering\small
+		\textbf{SMAC + Stochastic Kriging (SMAC-SK)} is the first combination to
+		close \emph{all five} gaps simultaneously.
+	\end{tcolorbox}
 \end{frame}
 
 
@@ -309,7 +315,18 @@
 \section{Objective}
 \begin{frame}{Objective}
 	\justifying
-	Design, formulate, and evaluate a prescriptive decision-support framework for capacity planning in Minimally Invasive Gynecology.
+	Design, formulate, and evaluate a prescriptive decision-support framework for
+	capacity planning in Minimally Invasive Gynecology.
+
+	\vspace{0.9em}
+	\begin{tcolorbox}[colback=ucnavy!9,colframe=ucnavy,arc=2mm,boxrule=0.8pt,
+	                  left=3mm,right=3mm,top=2mm,bottom=2mm]
+		\textbf{Hypothesis.} SMAC-SK --- combining SMAC's mixed-integer search with
+		Stochastic Kriging's native heteroscedasticity modelling --- is the most
+		suitable algorithm for this problem.\\[0.3em]
+		\textbf{Validation strategy.} Benchmark against purpose-selected baselines
+		to confirm SK adds value and SMAC-SK outperforms industry standards.
+	\end{tcolorbox}
 \end{frame}
 
 
@@ -372,27 +389,48 @@
 
 
 
+\begin{frame}{Why these three families?}
+	\begin{itemize}\setlength{\itemsep}{0.65em}
+		\item \textbf{\textcolor{okgreen}{SMAC-SK}\,\textcolor{okgreen}{$\bigstar$} (our recommendation).}
+		      Combines SMAC's mixed-integer search with Stochastic Kriging's
+		      native heteroscedasticity modelling --- the only combination that
+		      covers all five conditions.
+
+		\item \textbf{SMAC without SK (GP+EI, RF).}
+		      Same framework, different surrogate. Isolates the value added by SK:
+		      if SMAC-SK beats SMAC-GP and SMAC-RF, SK is not a fluke.
+
+		\item \textbf{DFO / Trust-Region (SPSA, ASTRO-DF).}
+		      Foundational algorithms with formal almost-sure convergence
+		      guarantees --- the strongest theoretical baseline for DFO problems.
+
+		\item \textbf{SK standalone (SK-Adaptive, SK-KGCP).}
+		      Best-in-class SK surrogates without SMAC's mixed-integer handling.
+		      Isolates the value added by SMAC.
+	\end{itemize}
+\end{frame}
+
 \begin{frame}{Methods selected}
 	\centering
-	\renewcommand{\arraystretch}{1.2}
+	\renewcommand{\arraystretch}{1.3}
 	\setlength{\tabcolsep}{10pt}
-	\resizebox{0.55\textwidth}{!}{%
-		\begin{tabular}{lc}
+	\resizebox{0.72\textwidth}{!}{%
+		\begin{tabular}{lcc}
 			\toprule
-			\textbf{Family} & \textbf{Method} \\
+			\textbf{Family} & \textbf{Method} & \textbf{Role in benchmark} \\
 			\midrule
 			\multirow{2}{*}{DFO / Trust-Region}
-			& SPSA \\
-			& ASTRO-DF \\
+			& SPSA     & theoretical baseline \\
+			& ASTRO-DF & theoretical baseline \\
 			\midrule
 			\multirow{2}{*}{Surrogate-based (RF/GP)}
-			& SMAC-GP+EI \\
-			& SMAC-RF \\
+			& SMAC-GP+EI & proves SK adds value \\
+			& SMAC-RF    & proves SK adds value \\
 			\midrule
 			\multirow{3}{*}{Surrogate-based (SK)}
-			& SK-Adaptive \\
-			& \textbf{SMAC-SK}\,\textcolor{okgreen}{$\bigstar$} \\
-			& SK-KGCP \\
+			& SK-Adaptive & proves SMAC adds value \\
+			& \textbf{SMAC-SK}\,\textcolor{okgreen}{$\bigstar$} & \textbf{recommended} \\
+			& SK-KGCP & proves SMAC adds value \\
 			\bottomrule
 	\end{tabular}}
 \end{frame}
@@ -471,9 +509,13 @@
 \begin{frame}{Results}
 	\justifying
 	\begin{itemize}[<+->]
-		\item \textbf{Main result:} Best algorithms reduced TTS from
-		\textbf{263 to 174 days} ($-34\%$) while patients served
-		increased from \textbf{1{,}148 to 2{,}200+} ($+91\%$).
+		\item \textbf{SMAC-SK confirmed as the recommended algorithm.}
+		      Best overall TTS (174.9 days, $-34\%$) with the tightest
+		      confidence interval --- validating the hypothesis.
+
+		\item \textbf{Main result:} Every tested algorithm reduced TTS from
+		\textbf{263 to 174--192 days} while patients served
+		increased from \textbf{1{,}148 to 1{,}800+} ($+57$--$+91\%$).
 
 
 		\item \textbf{No trade-off:} Algorithmic optimization strictly
