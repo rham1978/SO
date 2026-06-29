@@ -1,0 +1,292 @@
+{
+  "escenarios": [
+    {
+      "escenario": "Current",
+      "tipo": "manual",
+      "tts_media": 263.0,
+      "tts_sd": 7.1,
+      "tts_ic95": [
+        259.7,
+        266.2
+      ],
+      "atenciones_media": 1148.0,
+      "p_welch_vs_current": 1.0
+    },
+    {
+      "escenario": "Management",
+      "tipo": "manual",
+      "tts_media": 245.0,
+      "tts_sd": 8.0,
+      "tts_ic95": [
+        242.8,
+        247.2
+      ],
+      "atenciones_media": 1180.0,
+      "p_welch_vs_current": 0.01
+    },
+    {
+      "escenario": "Mgmt+Cap",
+      "tipo": "manual",
+      "tts_media": 228.0,
+      "tts_sd": 8.5,
+      "tts_ic95": [
+        225.6,
+        230.4
+      ],
+      "atenciones_media": 1390.0,
+      "p_welch_vs_current": 0.01
+    },
+    {
+      "escenario": "Mgmt+Cap v2",
+      "tipo": "manual",
+      "tts_media": 210.0,
+      "tts_sd": 9.0,
+      "tts_ic95": [
+        207.5,
+        212.5
+      ],
+      "atenciones_media": 1520.0,
+      "p_welch_vs_current": 0.01
+    },
+    {
+      "escenario": "ÓPTIMO M4",
+      "tipo": "optimo",
+      "tts_media": 174.9,
+      "tts_sd": 7.0,
+      "tts_ic95": [
+        173.0,
+        176.9
+      ],
+      "atenciones_media": 1895.0,
+      "p_welch_vs_current": 1e-08
+    },
+    {
+      "escenario": "ÓPTIMO M4RF",
+      "tipo": "optimo",
+      "tts_media": 182.1,
+      "tts_sd": 5.3,
+      "tts_ic95": [
+        180.6,
+        183.5
+      ],
+      "atenciones_media": 1807.0,
+      "p_welch_vs_current": 1e-08
+    },
+    {
+      "escenario": "ÓPTIMO M7",
+      "tipo": "optimo",
+      "tts_media": 176.9,
+      "tts_sd": 4.7,
+      "tts_ic95": [
+        175.6,
+        178.2
+      ],
+      "atenciones_media": 2179.0,
+      "p_welch_vs_current": 1e-08
+    },
+    {
+      "escenario": "ÓPTIMO M8",
+      "tipo": "optimo",
+      "tts_media": 176.6,
+      "tts_sd": 5.9,
+      "tts_ic95": [
+        174.9,
+        178.2
+      ],
+      "atenciones_media": 2206.0,
+      "p_welch_vs_current": 1e-08
+    },
+    {
+      "escenario": "ÓPTIMO M10",
+      "tipo": "optimo",
+      "tts_media": 192.0,
+      "tts_sd": 6.2,
+      "tts_ic95": [
+        190.3,
+        193.7
+      ],
+      "atenciones_media": 1836.0,
+      "p_welch_vs_current": 1e-08
+    },
+    {
+      "escenario": "ÓPTIMO M13",
+      "tipo": "optimo",
+      "tts_media": 174.5,
+      "tts_sd": 6.3,
+      "tts_ic95": [
+        172.7,
+        176.2
+      ],
+      "atenciones_media": 2216.0,
+      "p_welch_vs_current": 1e-08
+    },
+    {
+      "escenario": "ÓPTIMO M11",
+      "tipo": "optimo",
+      "tts_media": 217.8,
+      "tts_sd": 5.0,
+      "tts_ic95": [
+        216.4,
+        219.2
+      ],
+      "atenciones_media": 2102.0,
+      "p_welch_vs_current": 1e-08
+    }
+  ],
+  "variables_decision": {
+    "Current": {
+      "horas_especialista_1ra": 16,
+      "horas_control_post": 40,
+      "cupos_laboratorio_ugd": 54,
+      "cupos_ecografia_matrona": 25,
+      "cupos_ecografia_ugd": 25,
+      "dias_publicacion": 5,
+      "pct_bloqueo_1ra": 0.32,
+      "pct_consultas_vacias": 0.3,
+      "num_matronas": 1,
+      "num_agentes_ugd": 1,
+      "pct_no_contactabilidad": 0.15,
+      "pct_bloqueo_post_control": 0.34
+    },
+    "Management": {
+      "horas_especialista_1ra": 16,
+      "horas_control_post": 40,
+      "cupos_laboratorio_ugd": 54,
+      "cupos_ecografia_matrona": 25,
+      "cupos_ecografia_ugd": 25,
+      "dias_publicacion": 7,
+      "pct_bloqueo_1ra": 0.1,
+      "pct_consultas_vacias": 0.1,
+      "num_matronas": 1,
+      "num_agentes_ugd": 1,
+      "pct_no_contactabilidad": 0.15,
+      "pct_bloqueo_post_control": 0.1
+    },
+    "Mgmt+Cap": {
+      "horas_especialista_1ra": 30,
+      "horas_control_post": 40,
+      "cupos_laboratorio_ugd": 54,
+      "cupos_ecografia_matrona": 25,
+      "cupos_ecografia_ugd": 25,
+      "dias_publicacion": 7,
+      "pct_bloqueo_1ra": 0.1,
+      "pct_consultas_vacias": 0.1,
+      "num_matronas": 2,
+      "num_agentes_ugd": 2,
+      "pct_no_contactabilidad": 0.15,
+      "pct_bloqueo_post_control": 0.1
+    },
+    "Mgmt+Cap v2": {
+      "horas_especialista_1ra": 40,
+      "horas_control_post": 50,
+      "cupos_laboratorio_ugd": 50,
+      "cupos_ecografia_matrona": 50,
+      "cupos_ecografia_ugd": 25,
+      "dias_publicacion": 7,
+      "pct_bloqueo_1ra": 0.1,
+      "pct_consultas_vacias": 0.1,
+      "num_matronas": 2,
+      "num_agentes_ugd": 3,
+      "pct_no_contactabilidad": 0.15,
+      "pct_bloqueo_post_control": 0.1
+    },
+    "ÓPTIMO M4": {
+      "cupos_ecografia_matrona": 40,
+      "cupos_ecografia_ugd": 33,
+      "cupos_laboratorio_ugd": 86,
+      "dias_publicacion": 1,
+      "horas_control_post": 70,
+      "horas_especialista_1ra": 23,
+      "num_agentes_ugd": 2,
+      "num_matronas": 1,
+      "pct_bloqueo_1ra": 0.050004,
+      "pct_bloqueo_post_control": 0.154753,
+      "pct_consultas_vacias": 0.277932,
+      "pct_no_contactabilidad": 0.307062
+    },
+    "ÓPTIMO M4RF": {
+      "cupos_ecografia_matrona": 35,
+      "cupos_ecografia_ugd": 29,
+      "cupos_laboratorio_ugd": 93,
+      "dias_publicacion": 1,
+      "horas_control_post": 58,
+      "horas_especialista_1ra": 21,
+      "num_agentes_ugd": 2,
+      "num_matronas": 1,
+      "pct_bloqueo_1ra": 0.054121,
+      "pct_bloqueo_post_control": 0.122004,
+      "pct_consultas_vacias": 0.278501,
+      "pct_no_contactabilidad": 0.234583
+    },
+    "ÓPTIMO M7": {
+      "cupos_ecografia_matrona": 50,
+      "cupos_ecografia_ugd": 50,
+      "cupos_laboratorio_ugd": 100,
+      "dias_publicacion": 1,
+      "horas_control_post": 70,
+      "horas_especialista_1ra": 30,
+      "num_agentes_ugd": 4,
+      "num_matronas": 1,
+      "pct_bloqueo_1ra": 0.050114,
+      "pct_bloqueo_post_control": 0.050165,
+      "pct_consultas_vacias": 0.050026,
+      "pct_no_contactabilidad": 0.050051
+    },
+    "ÓPTIMO M8": {
+      "cupos_ecografia_matrona": 50,
+      "cupos_ecografia_ugd": 50,
+      "cupos_laboratorio_ugd": 100,
+      "dias_publicacion": 1,
+      "horas_control_post": 70,
+      "horas_especialista_1ra": 30,
+      "num_agentes_ugd": 4,
+      "num_matronas": 1,
+      "pct_bloqueo_1ra": 0.050231,
+      "pct_bloqueo_post_control": 0.050002,
+      "pct_consultas_vacias": 0.050224,
+      "pct_no_contactabilidad": 0.0503
+    },
+    "ÓPTIMO M10": {
+      "cupos_ecografia_matrona": 35,
+      "cupos_ecografia_ugd": 29,
+      "cupos_laboratorio_ugd": 93,
+      "dias_publicacion": 1,
+      "horas_control_post": 58,
+      "horas_especialista_1ra": 21,
+      "num_agentes_ugd": 2,
+      "num_matronas": 1,
+      "pct_bloqueo_1ra": 0.054121,
+      "pct_bloqueo_post_control": 0.122004,
+      "pct_consultas_vacias": 0.278501,
+      "pct_no_contactabilidad": 0.234583
+    },
+    "ÓPTIMO M13": {
+      "cupos_ecografia_matrona": 50,
+      "cupos_ecografia_ugd": 50,
+      "cupos_laboratorio_ugd": 20,
+      "dias_publicacion": 1,
+      "horas_control_post": 70,
+      "horas_especialista_1ra": 30,
+      "num_agentes_ugd": 4,
+      "num_matronas": 1,
+      "pct_bloqueo_1ra": 0.05,
+      "pct_bloqueo_post_control": 0.05,
+      "pct_consultas_vacias": 0.5,
+      "pct_no_contactabilidad": 0.05
+    },
+    "ÓPTIMO M11": {
+      "horas_especialista_1ra": 20,
+      "horas_control_post": 52,
+      "cupos_laboratorio_ugd": 60,
+      "cupos_ecografia_matrona": 23,
+      "cupos_ecografia_ugd": 30,
+      "dias_publicacion": 5,
+      "num_matronas": 3,
+      "num_agentes_ugd": 3,
+      "pct_bloqueo_1ra": 0.2,
+      "pct_bloqueo_post_control": 0.15,
+      "pct_consultas_vacias": 0.25,
+      "pct_no_contactabilidad": 0.29
+    }
+  }
+}

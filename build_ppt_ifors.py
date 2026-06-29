@@ -291,7 +291,7 @@ img(s, f"{FIG}/fig_tiempo_exec.png", 2.7, 1.6, w=8.0)
 s = slide(); title(s, "Case closed — but the guarantees do not transfer", "Discussion")
 bullets(s, [
     "Main result: SMAC-SK reduced TTS from 263 to 177 days (−33%) while patients served "
-    "rose from 1,148 to ~2,180 (+90%).   [verificar 164 vs 177 del deck]",
+    "rose from 1,148 to 2,179 (+90%).",
     "No trade-off: algorithmic optimization Pareto-dominates all manual configurations — "
     "wait time and throughput improve simultaneously.",
     "Existing guarantees do not transfer: all methods converge empirically, yet their asymptotic "
