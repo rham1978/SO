@@ -27,20 +27,22 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
-# Variables de decisión: (min, max, tipo, etiqueta en inglés) — mismo orden que el PPT
+# Variables de decisión: (min, max, tipo, etiqueta en inglés, dirección de importancia)
+#   dirección = +1  → mayor valor = más importante (capacidad/recursos)
+#   dirección = -1  → menor valor = más importante (bloqueo/fricción)
 VARIABLES = {
-    "horas_especialista_1ra":   (8, 30, "int",   "First-consult slots/week"),
-    "horas_control_post":       (20, 70, "int",  "Post-control slots/week"),
-    "cupos_laboratorio_ugd":    (20, 100, "int", "Lab slots (UGD)"),
-    "cupos_ecografia_matrona":  (10, 50, "int",  "Ultrasound slots (midwife)"),
-    "cupos_ecografia_ugd":      (10, 50, "int",  "Ultrasound slots (UGD)"),
-    "dias_publicacion":         (1, 10, "int",   "Scheduling lead time (days)"),
-    "num_matronas":             (1, 4, "int",    "# Midwives"),
-    "num_agentes_ugd":          (1, 4, "int",    "# UGD agents"),
-    "pct_bloqueo_1ra":          (0.05, 0.5, "float", "First-consult blocking %"),
-    "pct_consultas_vacias":     (0.05, 0.5, "float", "Empty-consult %"),
-    "pct_no_contactabilidad":   (0.05, 0.5, "float", "Non-contactability %"),
-    "pct_bloqueo_post_control": (0.05, 0.5, "float", "Post-control blocking %"),
+    "horas_especialista_1ra":   (8, 30, "int",   "First-consult slots/week", +1),
+    "horas_control_post":       (20, 70, "int",  "Post-control slots/week", +1),
+    "cupos_laboratorio_ugd":    (20, 100, "int", "Lab slots (UGD)", +1),
+    "cupos_ecografia_matrona":  (10, 50, "int",  "Ultrasound slots (midwife)", +1),
+    "cupos_ecografia_ugd":      (10, 50, "int",  "Ultrasound slots (UGD)", +1),
+    "dias_publicacion":         (1, 10, "int",   "Scheduling lead time (days)", +1),
+    "num_matronas":             (1, 4, "int",    "# Midwives", +1),
+    "num_agentes_ugd":          (1, 4, "int",    "# UGD agents", +1),
+    "pct_bloqueo_1ra":          (0.05, 0.5, "float", "First-consult blocking %", -1),
+    "pct_consultas_vacias":     (0.05, 0.5, "float", "Empty-consult %", -1),
+    "pct_no_contactabilidad":   (0.05, 0.5, "float", "Non-contactability %", -1),
+    "pct_bloqueo_post_control": (0.05, 0.5, "float", "Post-control blocking %", -1),
 }
 
 SHORT = {
@@ -94,11 +96,12 @@ def main():
     for j, src in enumerate(col_sources):
         cfg = vd.get(src, {})
         for i, vk in enumerate(var_keys):
-            lo, hi, _typ, _lab = VARIABLES[vk]
+            lo, hi, _typ, _lab, direction = VARIABLES[vk]
             v = cfg.get(vk, np.nan)
             if v is not None and np.isfinite(v):
                 raw[i, j] = v
-                norm[i, j] = (float(v) - lo) / (hi - lo)
+                pos = (float(v) - lo) / (hi - lo)
+                norm[i, j] = pos if direction == 1 else (1.0 - pos)
 
     # ── Figura ────────────────────────────────────────────────────────────
     cmap = plt.get_cmap("Reds")  # light pink=min, red=max
@@ -146,11 +149,11 @@ def main():
 
     # título y nota al pie
     ncfg = ncol
-    fig.suptitle(f"Decision variables by configuration  ({ncfg} configs)",
+    fig.suptitle(f"Which knobs move the needle?  ({ncfg} configs)",
                  fontsize=18, fontweight="bold", y=0.99)
     fig.text(0.5, 0.02,
-             "cell text = actual value   ·   color = position within each "
-             "variable's admissible range (white = min, red = max)",
+             "color = importance — how far each variable is pushed toward its "
+             "favorable extreme (more capacity / less blocking)   ·   white = low, red = high",
              ha="center", fontsize=11, color="#333333")
 
     fig.tight_layout(rect=[0, 0.04, 1, 0.93])
