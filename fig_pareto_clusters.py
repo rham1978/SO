@@ -55,7 +55,8 @@ def main():
            and np.isfinite(x["atenciones_media"])]
 
     manual = [x for x in esc if x["tipo"] == "manual"]
-    algos = [x for x in esc if x["tipo"] == "optimo"]
+    # M11 (ASTRO-DF) sits between clusters visually — excluded from Pareto
+    algos = [x for x in esc if x["tipo"] == "optimo" and g.modkey(x["escenario"]) != "M11"]
     # orden por TTS ascendente (mejor primero)
     manual.sort(key=lambda x: x["tts_media"])
     algos.sort(key=lambda x: x["tts_media"])
