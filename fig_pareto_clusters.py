@@ -88,7 +88,7 @@ def main():
                        edgecolor="white", linewidth=1.6)
             ax.scatter(at, tts, s=1700, marker="o", facecolor="none",
                        edgecolor=GREEN, linewidth=1.8, alpha=0.5, zorder=4)
-            texts.append(ax.text(at, tts, "SMAC-SK", color=GREEN,
+            texts.append(ax.text(at, tts, f"Alg {i} = SMAC-SK", color=GREEN,
                                  fontsize=12, fontweight="bold", zorder=7))
             xs.append(at); ys.append(tts)
         else:

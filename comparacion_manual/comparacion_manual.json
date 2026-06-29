@@ -15,37 +15,37 @@
     {
       "escenario": "Management",
       "tipo": "manual",
-      "tts_media": 245.0,
+      "tts_media": 240.1,
       "tts_sd": 8.0,
       "tts_ic95": [
-        242.8,
-        247.2
+        237.9,
+        242.3
       ],
-      "atenciones_media": 1180.0,
+      "atenciones_media": 1510.0,
       "p_welch_vs_current": 0.01
     },
     {
       "escenario": "Mgmt+Cap",
       "tipo": "manual",
-      "tts_media": 228.0,
-      "tts_sd": 8.5,
+      "tts_media": 239.0,
+      "tts_sd": 7.8,
       "tts_ic95": [
-        225.6,
-        230.4
+        236.9,
+        241.1
       ],
-      "atenciones_media": 1390.0,
+      "atenciones_media": 2220.0,
       "p_welch_vs_current": 0.01
     },
     {
       "escenario": "Mgmt+Cap v2",
       "tipo": "manual",
-      "tts_media": 210.0,
-      "tts_sd": 9.0,
+      "tts_media": 237.0,
+      "tts_sd": 7.5,
       "tts_ic95": [
-        207.5,
-        212.5
+        234.9,
+        239.1
       ],
-      "atenciones_media": 1520.0,
+      "atenciones_media": 2360.0,
       "p_welch_vs_current": 0.01
     },
     {
