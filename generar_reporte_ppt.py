@@ -156,6 +156,9 @@ def fig_convergencia(data, out):
             ("Simulator evaluations", "conv_eval", 1.0, "by evaluations", 150.0),
             ("Compute time [hours]", "conv_time", 3600.0, "by compute time", None)]):
         for m, regs in sorted(data.items()):
+            # M11 (ASTRO-DF) took ~70h/seed — exclude from compute time chart only
+            if conv == "conv_time" and m == "M11":
+                continue
             curvas = [[[p[0] / scale, p[1]] for p in r[conv]] for r in regs if r.get(conv)]
             cm = _curva_media(curvas, xcap=xcap)
             if cm is None:
