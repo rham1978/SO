@@ -170,7 +170,7 @@ def fig_convergencia(data, out):
             c = GREEN if is_hl else base_c
             lw = 3.6 if is_hl else 2.0
             z = 6 if is_hl else 3
-            lbl = (SHORT.get(m, m) + " (recommended)") if is_hl else SHORT.get(m, m)
+            lbl = SHORT.get(m, m)
             ax.plot(g, mu, color=c, lw=lw, label=lbl, zorder=z,
                     alpha=1.0 if is_hl else 0.85)
             ax.fill_between(g, mu - sd, mu + sd, color=c,
