@@ -576,11 +576,13 @@ def main():
         ("→ These are the levers separating algorithms from manual scenarios.", 0),
     ], left=9.1, top=1.4, w=4.0, size=12)
 
-    # 8b) Algorithm benchmark — convergence + execution time
+    # 8b) Algorithm benchmark — convergence + execution time (3 selected methods)
     mod_data = cargar_modulos(args.res)
+    SHOW_MODS = {"M13", "M4", "M7"}  # SPSA, SMAC-GP+EI, SMAC-SK
+    mod_data_3 = {m: v for m, v in mod_data.items() if m in SHOW_MODS}
     if mod_data:
-        f_conv = fig_convergencia(mod_data, args.figdir)
-        f_texec = fig_tiempo_exec(mod_data, args.figdir)
+        f_conv = fig_convergencia(mod_data_3, args.figdir)
+        f_texec = fig_tiempo_exec(mod_data_3, args.figdir)
         s = blank(prs)
         _title(s, "Algorithm convergence (sample efficiency)")
         _img(s, f_conv, 0.3, 1.35, w=12.7)
