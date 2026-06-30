@@ -104,9 +104,12 @@ def main():
                 norm[i, j] = pos if direction == 1 else (1.0 - pos)
 
     # ── Figura ────────────────────────────────────────────────────────────
-    cmap = plt.get_cmap("Reds")  # light pink=min, red=max
+    from matplotlib.colors import LinearSegmentedColormap
+    # Recortar Reds desde 0.15 (rosa tenue) hasta 1.0 (rojo oscuro) — evita blanco puro
+    cmap = LinearSegmentedColormap.from_list(
+        "Reds_trimmed", plt.get_cmap("Reds")(np.linspace(0.15, 1.0, 256)))
     fig, ax = plt.subplots(figsize=(16, 9))
-    im = ax.imshow(norm, cmap=cmap, vmin=-0.4, vmax=1, aspect="auto")  # vmin<0 shifts start to light pink
+    im = ax.imshow(norm, cmap=cmap, vmin=0, vmax=1, aspect="auto")
 
     # sin texto en celdas
 
