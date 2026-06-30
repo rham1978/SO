@@ -52,9 +52,9 @@ SHORT = {
 }
 
 # Orden de los modelos de optimización (familia SMAC, luego SK, luego gradiente)
-OPT_ORDER = ["M13", "M4", "M8", "M7", "M4RF", "M10", "M11"]
+OPT_ORDER = ["M13", "M4", "M7"]  # SPSA, SMAC-GP+EI, SMAC-SK
 # Orden de los escenarios manuales
-MAN_ORDER = ["Current", "Management", "Mgmt+Cap", "Mgmt+Cap v2"]
+MAN_ORDER = []  # sin escenarios manuales — solo los 3 métodos seleccionados
 
 RED, BLUE = "#d62728", "#1f77b4"
 
