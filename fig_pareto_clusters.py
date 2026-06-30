@@ -83,13 +83,21 @@ def main():
         tag = f"Alg {i}"
         alg_map[tag] = (g.disp(x["escenario"]), x["tts_media"], x["atenciones_media"])
         at, tts = x["atenciones_media"], x["tts_media"]
-        if g.modkey(x["escenario"]) == "M7":   # SMAC-SK protagonista (único rotulado)
+        mk = g.modkey(x["escenario"])
+        if mk == "M7":   # SMAC-SK protagonista
             ax.scatter(at, tts, s=620, marker="*", color=GREEN, zorder=5,
                        edgecolor="white", linewidth=1.6)
             ax.scatter(at, tts, s=1700, marker="o", facecolor="none",
                        edgecolor=GREEN, linewidth=1.8, alpha=0.5, zorder=4)
             texts.append(ax.text(at, tts, "SMAC-SK", color=GREEN,
                                  fontsize=12, fontweight="bold", zorder=7))
+            xs.append(at); ys.append(tts)
+        elif mk in ("M13", "M4"):  # SPSA y SMAC-GP+EI rotulados
+            label = "SPSA" if mk == "M13" else "SMAC-GP+EI"
+            ax.scatter(at, tts, s=180, marker="o", color=BLUE, zorder=3,
+                       edgecolor="white", linewidth=1.3)
+            texts.append(ax.text(at, tts, label, color=BLUE,
+                                 fontsize=11, fontweight="bold", zorder=7))
             xs.append(at); ys.append(tts)
         else:
             ax.scatter(at, tts, s=180, marker="o", color=BLUE, zorder=3,
