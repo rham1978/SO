@@ -122,8 +122,7 @@ def main():
                 fontsize=12, fontweight="bold",
                 color=RED if typ == "manual" else BLUE)
 
-    # línea divisoria manual / optimización
-    ax.axvline(n_man - 0.5, color="black", lw=2.5)
+    # sin línea divisoria vertical (se cruzaría con etiquetas rotadas)
 
     # cabeceras de grupo + subrayado (bien por encima de las etiquetas rotadas)
     x_man = (n_man - 1) / 2.0
