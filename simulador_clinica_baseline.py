@@ -2020,14 +2020,16 @@ class ClinicModelAdjusted(ClinicModelBase):
             if self.env.now < pub_t:
                 yield self.env.timeout(pub_t - self.env.now)
 
-            slots_expired = len(self.slot_times)
+            now = self.env.now
+            slots_expired = sum(1 for s in self.slot_times if s < now)
             if not hasattr(self.kpis, 'slots_expired_total'):
                 self.kpis.slots_expired_total = 0
             self.kpis.slots_expired_total += slots_expired
+            while self.slot_times and self.slot_times[0] < now:
+                self.slot_times.popleft()
 
-            self.slot_times.clear()
-            self.published_at = self.env.now
-            self.earliest_bookable_time = self.published_at + self.cfg.min_lead_publish_hours * 60
+            self.published_at = now
+            self.earliest_bookable_time = now + self.cfg.min_lead_publish_hours * 60
 
             if self.cfg.use_fixed_weekly_capacity:
                 week_capacity_raw = int(self.cfg.fixed_weekly_capacity)
@@ -2065,7 +2067,11 @@ class ClinicModelAdjusted(ClinicModelBase):
                     if s + self.cfg.consult_duration_min <= end and s < self.cfg.sim_time_min:
                         self.slot_times.append(s)
 
-            self.kpis.slot_minutes_published += len(self.slot_times) * self.cfg.consult_duration_min
+            new_slots_this_week = sum(
+                1 for s in self.slot_times
+                if week_start <= s < week_start + 7 * 24 * 60
+            )
+            self.kpis.slot_minutes_published += new_slots_this_week * self.cfg.consult_duration_min
             self.week_caps_used[week] = {"long": 0, "short": 0}
             week += 1
 
@@ -2080,12 +2086,13 @@ class ClinicModelAdjusted(ClinicModelBase):
             if self.env.now < pub_t:
                 yield self.env.timeout(pub_t - self.env.now)
 
-            post_slots_expired = len(self.post_control_slots)
+            now = self.env.now
+            post_slots_expired = sum(1 for s in self.post_control_slots if s < now)
             if not hasattr(self.kpis, 'post_slots_expired_total'):
                 self.kpis.post_slots_expired_total = 0
             self.kpis.post_slots_expired_total += post_slots_expired
-
-            self.post_control_slots.clear()
+            while self.post_control_slots and self.post_control_slots[0] < now:
+                self.post_control_slots.popleft()
 
             if self.cfg.use_fixed_post_control_hours:
                 week_capacity_raw = int(self.cfg.fixed_post_control_capacity)
@@ -2126,8 +2133,12 @@ class ClinicModelAdjusted(ClinicModelBase):
                     if s + self.cfg.consult_duration_min <= end and s < self.cfg.sim_time_min:
                         self.post_control_slots.append(s)
 
+            new_post_slots_this_week = sum(
+                1 for s in self.post_control_slots
+                if week_start <= s < week_start + 7 * 24 * 60
+            )
             self.kpis.post_control_minutes_published += (
-                len(self.post_control_slots) * self.cfg.consult_duration_min)
+                new_post_slots_this_week * self.cfg.consult_duration_min)
             week += 1
 
     def weekly_ugd_us_slots_loop(self):

@@ -80,7 +80,8 @@ log = logging.getLogger("benchmark_riguroso")
 
 # Colores/estilos por módulo (igual que en comparativa)
 ESTILO = {
-    "M4":  {"label": "M1 SMAC-GP+EI",    "color": "#1f77b4", "ls": "-",  "marker": "o"},
+    "M4":  {"label": "M1 SMAC-BO (GP+EI)","color": "#1f77b4", "ls": "-",  "marker": "o"},
+    "M4RF":{"label": "SMAC-RF (RF+EI)",  "color": "#d62728", "ls": "--", "marker": "*"},
     "M7":  {"label": "M2 SMAC+SK (EI)",  "color": "#ff7f0e", "ls": "-",  "marker": "s"},
     "M8":  {"label": "M3 SK Adaptativo", "color": "#2ca02c", "ls": "--", "marker": "D"},
     "M9":  {"label": "SK-REVI",          "color": "#d62728", "ls": "--", "marker": "v"},
@@ -97,7 +98,7 @@ ESTILO = {
 # n_trials: evaluciones del simulador a contar para presupuesto unificado
 # evals_por_config: cuántas corridas del simulador por punto para M4-M10
 # evals_por_iter: para M11-M14, cuántas evaluaciones por iteración (corregido)
-FAMILIA_SMAC = {"M4", "M7", "M8", "M9", "M10"}
+FAMILIA_SMAC = {"M4", "M4RF", "M7", "M8", "M9", "M10"}
 FAMILIA_ITER = {"M11", "M12", "M13", "M14"}
 
 
@@ -827,8 +828,9 @@ def main():
     p = argparse.ArgumentParser(
         description="Benchmark riguroso SO-main + files (IFORS julio 2026).")
     p.add_argument("--modulos", nargs="+",
-                   default=["M4", "M7", "M8", "M10", "M11", "M13", "RS"],
-                   help="Módulos a correr (M4 M7 M8 M9 M10 M11 M12 M13 M14 RS).")
+                   default=["M4", "M4RF", "M7", "M8", "M10", "M11", "M13", "RS"],
+                   help="Módulos a correr (M4 M4RF M7 M8 M9 M10 M11 M12 M13 M14 RS). "
+                        "M4=SMAC BO/GP, M4RF=SMAC Random Forest.")
     p.add_argument("--n_seeds",  type=int, default=10,
                    help="Macro-réplicas por módulo (default 10).")
     p.add_argument("--n_trials", type=int, default=150,
