@@ -9,8 +9,8 @@ este script en segundo plano con una carpeta de trabajo que contiene
 Dos tipos de trabajo:
   - "evaluacion": corre run_once para UNA configuración con n réplicas,
     usando offsets fijos (números aleatorios comunes entre evaluaciones).
-  - "algoritmo": corre UN módulo del benchmark (M4, M11, SA, ...) vía
-    benchmark_riguroso.py con 1 macro-semilla y presupuesto acotado.
+  - "algoritmo": corre UN módulo del benchmark (M4, M11, SA, ...) con
+    benchmark_riguroso.ejecutar, 1 macro-semilla y presupuesto acotado.
 
 Uso (lo invoca herramientas.py, no tú):
     python3 agentes/ejecutor.py <carpeta_trabajo>
@@ -19,7 +19,6 @@ Uso (lo invoca herramientas.py, no tú):
 import concurrent.futures
 import json
 import os
-import subprocess
 import sys
 import time
 import traceback
@@ -105,29 +104,32 @@ def correr_evaluacion(spec: dict) -> dict:
 
 
 def correr_algoritmo(spec: dict, carpeta: Path) -> dict:
+    """Corre UN módulo con 1 macro-semilla llamando a benchmark_riguroso en este mismo proceso."""
+    import benchmark_riguroso as br
+    sys.path.insert(0, str(REPO / "agentes"))
+    from herramientas import MODULOS
+
+    # spec.json es un archivo en disco: se revalida aunque herramientas.py ya lo validó.
+    modulo = spec["modulo"]
+    if modulo not in MODULOS:
+        raise ValueError(f"módulo no permitido: {modulo!r}")
+    n_trials, r_final = int(spec["n_trials"]), int(spec["r_final"])
+    lam = spec.get("lambda_obj")
+    pesos = None if lam is None else {"tts_full_days_mean": 1.0, "total_atenciones": -float(lam)}
+
+    import logging
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
     salida = carpeta / "salida"
-    cmd = [sys.executable, str(REPO / "benchmark_riguroso.py"),
-           "--modulos", spec["modulo"],
-           "--n_seeds", "1",
-           "--n_trials", str(spec["n_trials"]),
-           "--r_final", str(spec["r_final"]),
-           "--n_cores", "1",
-           "--max_seed_horas", str(spec.get("max_horas", 24)),
-           "--out", str(salida)]
-    if spec.get("lambda_obj") is not None:
-        cmd += ["--lambda_obj", str(spec["lambda_obj"])]
-    with open(carpeta / "benchmark.log", "w") as log:
-        proc = subprocess.run(cmd, cwd=REPO, stdout=log, stderr=subprocess.STDOUT)
-    f = salida / f"resultado_{spec['modulo']}_seed00.json"
+    br.ejecutar(modulos=[modulo], n_seeds=1, n_trials=n_trials, r_final=r_final, n_cores=1,
+                out_dir=salida, pesos_kpi=pesos)
+    f = salida / f"resultado_{modulo}_seed00.json"
     if not f.exists():
-        raise RuntimeError(f"benchmark_riguroso terminó (código {proc.returncode}) "
-                           f"sin {f.name}; ver benchmark.log")
+        raise RuntimeError(f"benchmark_riguroso terminó sin {f.name}; ver ejecutor.log")
     r = json.loads(f.read_text())
     if "error" in r:
         raise RuntimeError(f"el módulo falló: {r['error']}")
-    return {"tipo": "algoritmo", "modulo": spec["modulo"], "n_trials": spec["n_trials"],
-            "r_final": spec["r_final"], "lambda_obj": spec.get("lambda_obj"),
-            "incumbente": r.get("incumbente"), "costo_opt": r.get("costo_opt"),
+    return {"tipo": "algoritmo", "modulo": modulo, "n_trials": n_trials, "r_final": r_final,
+            "lambda_obj": lam, "incumbente": r.get("incumbente"), "costo_opt": r.get("costo_opt"),
             "reeval": r.get("reeval"), "kpis_incumbente": r.get("kpis_incumbente"),
             "n_eval_usadas": r.get("n_eval_usadas"), "tiempo_seg": r.get("tiempo_seg")}
 

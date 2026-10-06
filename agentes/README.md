@@ -40,7 +40,7 @@ investigador que rodea al motor:
  herramientas.py   validación · presupuesto · máx. simultáneos · CRN · resúmenes
     │  lanza en segundo plano (no bloquea al modelo)
     ▼
- ejecutor.py ──► run_once (evaluaciones)  |  benchmark_riguroso.py (algoritmos)
+ ejecutor.py ──► run_once (evaluaciones)  |  benchmark_riguroso.ejecutar (algoritmos)
     │
     ▼
  agentes/trabajos/<job_id>/  spec.json · resultado.json · error.txt · logs
@@ -50,7 +50,7 @@ investigador que rodea al motor:
 | Archivo | Qué es |
 |---|---|
 | `herramientas.py` | Las 8 herramientas: funciones Python normales con su esquema. Aquí viven todos los límites. |
-| `ejecutor.py` | Proceso en segundo plano que corre una evaluación o un algoritmo y deja `resultado.json`. |
+| `ejecutor.py` | Proceso en segundo plano que corre una evaluación (`run_once`) o un algoritmo (`benchmark_riguroso.ejecutar`) y deja `resultado.json`. |
 | `paso1_herramientas.py` | Usa las herramientas a mano, sin modelo. |
 | `paso2_loop_manual.py` | El loop de un agente escrito a mano con la API. |
 | `paso3_agente_sdk.py` | El mismo agente con el Claude Agent SDK, con controles y bitácora. |
@@ -96,6 +96,15 @@ hacer el modelo y cómo. Estas son las decisiones de diseño, y por qué:
   acordarse de esto.
 - **Salidas resumidas.** El modelo recibe media, sd e IC95, no 30 números crudos.
   Cada token que lee consume contexto y dinero.
+- **Desconfiar de lo que escribe el modelo.** Los `job_id` se validan para que no
+  apunten fuera de `trabajos/`; lanzar un experimento idéntico a uno existente
+  (misma configuración y semillas) devuelve el existente sin costo; varios
+  subagentes lanzando a la vez pasan por un candado, así que el presupuesto y el
+  máximo de simultáneos se respetan siempre.
+- **Algoritmos: costo estimado, tiempo acotado.** Para un algoritmo, el costo en
+  réplicas se estima antes de lanzar y se ajusta al terminar con lo que reporta el
+  benchmark. El límite duro es `max_horas` (12 por defecto): si se supera, el
+  trabajo se detiene.
 
 En la prueba de humo (8 semanas, 3 réplicas) se ve por qué la comparación
 pareada importa:
@@ -198,7 +207,10 @@ igual.
 - **Tiempos.** En la máquina donde se probó esto (2 cores), una réplica de 52
   semanas tarda unos 230 s. Mide primero en Pelluhue con
   `AGENTE_SEMANAS=52 python3 agentes/paso1_herramientas.py` y ajusta
-  `n_trials`, `r_final` y `AGENTE_MAX_SIMULTANEOS` a tus 9 cores.
+  `n_trials`, `r_final` y `AGENTE_MAX_SIMULTANEOS` a tus 9 cores. Las
+  evaluaciones del agente se reparten los cores entre trabajos simultáneos; los
+  algoritmos iterativos usan todos los cores que ven (así están los runners del
+  benchmark), de modo que dos algoritmos a la vez compiten por CPU.
 - **El presupuesto se cuenta en réplicas** y se guarda en
   `trabajos/presupuesto.json`. Para empezar de cero, borra la carpeta `trabajos/`.
 - **Semanas.** `AGENTE_SEMANAS` solo afecta a las evaluaciones del agente; los
@@ -210,8 +222,13 @@ igual.
 - **Estado de la prueba.** Las herramientas se probaron con el simulador real:
   las evaluaciones y comparaciones del paso 1, y una corrida completa de RS
   (`n_trials=5`, `r_final=2`, 17 réplicas de 52 semanas, 70 min en 2 cores)
-  lanzada, esperada y leída con las propias herramientas. La prueba repetida del
-  paso 1 da exactamente los mismos números, como corresponde con semillas fijas. El loop del paso 2 y la configuración de
+  lanzada, esperada y leída con las propias herramientas; luego, tras pasar a
+  `benchmark_riguroso.ejecutar` en el mismo proceso, otra corrida de RS con 4
+  semanas para verificar ese camino. Los controles (job_id inválido, carrera entre
+  lanzamientos simultáneos, duplicados, PID reutilizado, `max_horas`, horizontes
+  distintos, reversión si el lanzamiento falla) tienen pruebas con trabajos reales.
+  La prueba repetida del paso 1 da exactamente los mismos números, como
+  corresponde con semillas fijas. El loop del paso 2 y la configuración de
   los pasos 3 y 4 (servidor, hooks, subagentes) se verificaron sin llamar al
   modelo, porque no había API key. La primera corrida real con modelo es tuya:
   hazla con `AGENTE_SEMANAS=8`.
