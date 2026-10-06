@@ -207,8 +207,11 @@ igual.
 - **Supervisa.** Lee `bitacora.jsonl` y el informe final con ojo crítico. Si el
   agente toma una mala decisión estadística, la solución es corregir el protocolo
   o la herramienta, no confiar más en el modelo.
-- **Estado de la prueba.** Las herramientas se probaron con el simulador real
-  (evaluaciones y un algoritmo completo). El loop del paso 2 y la configuración de
+- **Estado de la prueba.** Las herramientas se probaron con el simulador real:
+  las evaluaciones y comparaciones del paso 1, y una corrida completa de RS
+  (`n_trials=5`, `r_final=2`, 17 réplicas de 52 semanas, 70 min en 2 cores)
+  lanzada, esperada y leída con las propias herramientas. La prueba repetida del
+  paso 1 da exactamente los mismos números, como corresponde con semillas fijas. El loop del paso 2 y la configuración de
   los pasos 3 y 4 (servidor, hooks, subagentes) se verificaron sin llamar al
   modelo, porque no había API key. La primera corrida real con modelo es tuya:
   hazla con `AGENTE_SEMANAS=8`.
