@@ -1,0 +1,42 @@
+% Table: Stochastic distributions used in the DES model
+% Goodness-of-fit tests against September 2025 waiting-list snapshot (CRS-INV)
+% KS = one-sample Kolmogorov–Smirnov; chi-sq = Pearson chi-squared
+
+\begin{table}[htbp]
+\centering
+\caption{Stochastic distributions used in the DES model and goodness-of-fit tests.}
+\label{tab:distributions}
+\small
+\begin{tabularx}{\textwidth}{l l l r r r}
+\toprule
+\textbf{Quantity modelled} & \textbf{Distribution} & \textbf{Parameters} & \textbf{$n$} & \textbf{Stat.} & \textbf{$p$-value} \\
+\midrule
+\multicolumn{6}{l}{\textit{Arrival process}} \\[2pt]
+Weekly new arrivals$^a$ & $\mathrm{NegBin}(n,p)$, $k\!\ge\!1$ & $n{=}8.99,\ p{=}0.7157$ & 52 & $\chi^2(3){=}4.83$ & $0.185$ \\[6pt]
+
+\multicolumn{6}{l}{\textit{Slot capacity (published each week)}} \\[2pt]
+Primera consulta slots & $\lfloor\,\mathrm{Gamma}(\kappa,\theta)\,\rceil$ & $\kappa{=}8.37,\ \theta{=}1.77$ & — & — & — \\
+Post-control hours & $b_0 + b_1\cdot\mathrm{Beta}(\alpha,\beta)$\,(hrs) & $b_0{=}3.5,\ b_1{=}26.8;$\quad$\alpha{=}0.945,\ \beta{=}1.63$ & — & — & — \\[6pt]
+
+\multicolumn{6}{l}{\textit{Initial backlog wait — primera consulta (LECN)}} \\[2pt]
+Priority Alta (HIGH) & $7 + 274\cdot\mathrm{Beta}(\alpha,\beta)$\,(days) & $\alpha{=}0.947,\ \beta{=}1.37$ & 521 & $\mathrm{KS}{=}0.219$ & ${<}0.001$ \\
+Priority Media (MID) & $7 + 238\cdot\mathrm{Beta}(\alpha,\beta)$\,(days) & $\alpha{=}0.747,\ \beta{=}0.899$ & 176 & $\mathrm{KS}{=}0.050$ & $0.750$ \\
+Priority Baja (LOW) & $\mathrm{Uniform}(42,\,242)$\,(days) & — & 2 & \multicolumn{2}{c}{$n$ too small} \\[6pt]
+
+\multicolumn{6}{l}{\textit{Initial backlog wait — post-control (LECR)}} \\[2pt]
+Priority Alta (HIGH) & $7 + 537\cdot\mathrm{Beta}(\alpha,\beta)$\,(days) & $\alpha{=}2.215,\ \beta{=}7.785$ & 1\,230 & $\mathrm{KS}{=}0.304$ & ${<}0.001$ \\
+Priority Media (MID) & $7 + 677\cdot\mathrm{Beta}(\alpha,\beta)$\,(days) & $\alpha{=}1.580,\ \beta{=}8.420$ & 312 & $\mathrm{KS}{=}0.175$ & ${<}0.001$ \\
+Priority Baja (LOW) & $14 + 629\cdot\mathrm{Beta}(\alpha,\beta)$\,(days) & $\alpha{=}1.887,\ \beta{=}8.113$ & 19 & $\mathrm{KS}{=}0.390$ & $0.004$ \\
+\bottomrule
+\end{tabularx}
+\begin{tablenotes}
+\small
+\item $^a$ Counts per ISO week; left-truncated at $k\!\ge\!1$ (zero-arrival weeks excluded). $n{=}52$ weekly observations.
+\item Slot-capacity distributions were calibrated from administrative records; no independent test sample is available.
+\item Backlog Beta parameters were fitted to a prior-year snapshot; the GoF column tests against the
+      September 2025 waiting-list extract ($n$ after range-clipping). LECN~MID and arrivals pass at
+      $\alpha{=}0.05$; remaining backlog distributions show systematic over-estimation of prior waiting
+      times relative to the September snapshot, reflecting demographic shifts between calibration
+      and test periods.
+\end{tablenotes}
+\end{table}
