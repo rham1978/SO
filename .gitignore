@@ -14,3 +14,11 @@ smac_output*/
 *.xlsx
 *.zip
 *.7z
+
+# LaTeX build files
+*.aux
+*.log
+*.nav
+*.out
+*.snm
+*.toc
