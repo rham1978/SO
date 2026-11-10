@@ -1,0 +1,534 @@
+% =====================================================================
+%  Examen de candidatura - Raúl Araneda Martínez
+%  Coordination of Complex Healthcare Systems with Shared Resources
+%  Estructura basada en la presentación IFORS 2026
+%  Compilar con: pdflatex candidatura_beamer.tex (dos veces)
+% =====================================================================
+\documentclass[aspectratio=169,11pt,xcolor=table]{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noshorthands]{babel}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric}
+
+% ---------------------------------------------------------------------
+%  Tema (similar al de IFORS 2026: barra azul + mini-navegación)
+% ---------------------------------------------------------------------
+\usetheme{Frankfurt}
+\usecolortheme{default}
+\definecolor{ucblue}{HTML}{0A6EDB}
+\definecolor{ucnavy}{HTML}{14213D}
+\definecolor{ucorange}{HTML}{D9792B}
+\definecolor{ucgreen}{HTML}{2E7D3A}
+\definecolor{ucgray}{HTML}{6B7280}
+\definecolor{uclight}{HTML}{E6EEFA}
+\definecolor{ucsand}{HTML}{FFF4E8}
+
+\setbeamercolor{structure}{fg=ucblue}
+\setbeamercolor{frametitle}{bg=ucblue,fg=white}
+\setbeamercolor{section in head/foot}{bg=white,fg=ucblue}
+\setbeamercolor{author in head/foot}{bg=white,fg=ucblue}
+\setbeamercolor{title in head/foot}{bg=white,fg=ucblue}
+\setbeamercolor{date in head/foot}{bg=white,fg=ucblue}
+\setbeamercolor{title}{bg=ucblue,fg=white}
+\setbeamercolor{block title}{bg=ucblue,fg=white}
+\setbeamercolor{block body}{bg=uclight}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{itemize items}[triangle]
+\setbeamertemplate{caption}[numbered]
+\setbeamercovered{transparent=15}
+
+\setbeamertemplate{footline}{%
+  \leavevmode\hbox{%
+  \begin{beamercolorbox}[wd=.30\paperwidth,ht=2.5ex,dp=1ex,left]{author in head/foot}%
+    \hspace*{1em}\color{ucblue}\scriptsize\insertshortauthor
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.50\paperwidth,ht=2.5ex,dp=1ex,center]{title in head/foot}%
+    \color{ucblue}\scriptsize\insertshorttitle
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.20\paperwidth,ht=2.5ex,dp=1ex,right]{date in head/foot}%
+    \color{ucblue}\scriptsize\insertframenumber{} / \inserttotalframenumber\hspace*{1em}
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+
+\newcommand{\si}{\textcolor{ucgreen}{\checkmark}}
+\newcommand{\no}{\textcolor{ucgray}{$\times$}}
+\newcommand{\pa}{\textcolor{ucblue}{Parcial}}
+\newcommand{\bignum}[2]{%
+  \begin{minipage}[t]{\linewidth}\centering
+    {\Huge\bfseries\color{ucnavy}#1}\\[4pt]
+    {\small #2}
+  \end{minipage}}
+
+% Barra de la carta Gantt: fila, etiqueta, trimestre inicio, fin, color
+\newcommand{\gbar}[5]{%
+  \node[anchor=east, text=ucnavy] at (-0.2, #1) {#2};
+  \fill[#5, rounded corners=1pt] (#3-1+0.05, #1-0.32) rectangle (#4-0.05, #1+0.32);}
+
+% ---------------------------------------------------------------------
+%  Datos de la portada
+% ---------------------------------------------------------------------
+\title[Coordinación de sistemas de salud complejos]%
+  {Coordination of Complex Healthcare Systems\\with Shared Resources}
+\subtitle{Examen de candidatura -- Proyecto de tesis doctoral}
+\author[Araneda (2026)]{Raúl Araneda Martínez}
+\institute{%
+  Director: Ph.D. Rodrigo A. Carrasco\\
+  Co-directores externos: María de los Ángeles Zúñiga Hidalgo y Christian García Calavaro (SSMO)\\[4pt]
+  \textit{Programa de Ingeniería y Ciencias con la Industria}\\
+  \textit{Escuela de Ingeniería, Pontificia Universidad Católica de Chile}}
+\date{[Fecha del examen]}
+
+\begin{document}
+
+% =====================================================================
+\begin{frame}[plain]
+  \titlepage
+  \vfill
+  {\scriptsize Proyecto parcialmente financiado por Fondecyt Regular 1231245 y Beca de doctorado VRIP.}
+\end{frame}
+
+\begin{frame}{Agenda}
+  \tableofcontents
+\end{frame}
+
+% =====================================================================
+\section{Motivación}
+% =====================================================================
+
+\begin{frame}{La espera enferma, y Chile no es la excepción}
+  \begin{columns}[T]
+    \column{.32\textwidth}\bignum{2.978.427}{prestaciones de especialidad retrasadas (IV trim. 2025)}
+    \column{.32\textwidth}\bignum{266 días}{de espera promedio para la atención de especialidad}
+    \column{.32\textwidth}\bignum{41\,\%}{menos gasto en salud OCDE sin ENT (cota superior)}
+  \end{columns}
+  \vspace{1.2em}
+  \begin{itemize}
+    \item<2-> \textbf{No es solo escasez:} es un desajuste entre demanda, capacidad instalada
+      y mecanismos de planificación y coordinación (OECD, 2020, 2025).
+    \item<3-> \textbf{Esperar tiene costo:} las esperas prolongadas se asocian a mayor
+      mortalidad en pacientes no GES (Martínez et al., 2019).
+  \end{itemize}
+  \vfill
+  {\scriptsize Fuentes: Ministerio de Salud de Chile (2025); OECD (2026).}
+\end{frame}
+
+\begin{frame}{¿Cómo recorre un paciente el sistema público?}
+  \centering
+  \begin{tikzpicture}[
+      stage/.style={rectangle, rounded corners=3pt, minimum width=2.25cm,
+                    minimum height=1.3cm, text width=2.05cm, align=center,
+                    font=\small\bfseries, text=white},
+      tag/.style={rectangle, rounded corners=2pt, fill=ucorange!70, text=ucnavy,
+                  font=\scriptsize\bfseries, text width=2.05cm, align=center,
+                  minimum height=.6cm},
+      arr/.style={-{Stealth[length=3mm]}, very thick, ucgray}]
+    \node[stage, fill=ucgray!90]           (aps) {Atención primaria (APS)};
+    \node[stage, fill=teal!80!black, right=.55cm of aps] (cn) {Consulta nueva};
+    \node[stage, fill=ucnavy, right=.55cm of cn]  (ctl) {Consultas de control};
+    \node[stage, fill=brown!80!black, right=.55cm of ctl] (qx) {Ruta pre / quirúrgica};
+    \node[stage, fill=ucgreen, right=.55cm of qx] (alta) {Alta o derivación};
+    \draw[arr] (aps) -- (cn); \draw[arr] (cn) -- (ctl);
+    \draw[arr] (ctl) -- (qx); \draw[arr] (qx) -- (alta);
+    \node[tag, below=.25cm of cn]  {1.\textsuperscript{er} cuello de botella};
+    \node[tag, below=.25cm of ctl] {Mayor carga (hasta $\times3$)};
+    \node[tag, below=.25cm of qx, fill=uclight] {Otra institución};
+  \end{tikzpicture}
+  \vspace{1em}
+  \begin{itemize}
+    \item Cada etapa tiene su propia cola.
+    \item Mejorar un indicador parcial (p.\,ej., más primeras consultas) puede
+      \textbf{empeorar las etapas siguientes} si no se mira la trayectoria completa
+      (Sánchez e Inostroza, 2024).
+  \end{itemize}
+\end{frame}
+
+% =====================================================================
+\section{Caso de estudio}
+% =====================================================================
+
+\begin{frame}{Dos instituciones, un mismo especialista}
+  \begin{columns}[T]
+    \column{.42\textwidth}
+      \begin{block}{CRS Cordillera}
+        Centro ambulatorio de mediana complejidad, nodo de derivación para Macul
+        y Peñalolén. Diagnóstico, exámenes y controles.
+      \end{block}
+    \column{.12\textwidth}
+      \centering\vspace{.8cm}
+      \begin{tikzpicture}\draw[-{Stealth[length=3mm]}, line width=3pt, ucblue] (0,0) -- (1.3,0);\end{tikzpicture}\\
+      {\scriptsize derivación quirúrgica}
+    \column{.42\textwidth}
+      \begin{block}{Hospital Luis Tisné}
+        Resolución quirúrgica de los pacientes derivados. Comparte con el CRS las
+        horas del mismo equipo de especialistas.
+      \end{block}
+  \end{columns}
+  \vspace{1em}
+  \begin{columns}[T]
+    \column{.32\textwidth}\bignum{30.000+}{consultas en el CRS durante 2025}
+    \column{.32\textwidth}\bignum{30\,\%}{de la lista de espera es ginecología}
+    \column{.32\textwidth}\bignum{3.859}{casos pendientes en 11 policlínicos}
+  \end{columns}
+  \vfill
+  {\scriptsize Red del Servicio de Salud Metropolitano Oriente (SSMO).}
+\end{frame}
+
+\begin{frame}{Ginecología: dónde vive el cuello de botella}
+  \begin{columns}[T]
+    \column{.48\textwidth}
+      \begin{itemize}
+        \item \textbf{Tiempos de espera}\\
+          Promedio de 205 días; máximo registrado: 1.164 días.
+        \item \textbf{Ginecología mínimamente invasiva (CMI)}\\
+          5.ª lista por tamaño: 318 casos activos y 81 días promedio a primera consulta.
+      \end{itemize}
+    \column{.48\textwidth}
+      \begin{block}{Agenda desbalanceada}
+        Las horas de especialista se concentran el martes: \textbf{41\,\%} de las
+        consultas nuevas y \textbf{43\,\%} de los controles, contra 9\,\% el lunes.
+      \end{block}
+      \begin{block}{Variables de decisión}
+        Cupos de primera consulta y control, laboratorio, ecografías, matronas,
+        agentes de atención y bloqueos de agenda.
+      \end{block}
+  \end{columns}
+\end{frame}
+
+% =====================================================================
+\section{Definición del problema}
+% =====================================================================
+
+\begin{frame}{Un problema en dos niveles articulados}
+  \begin{columns}[T]
+    \column{.48\textwidth}
+      \begin{block}{Nivel 1 -- Asignación}
+        Minimizar una función objetivo \textbf{estocástica} con variables continuas
+        (proporciones, umbrales de priorización) y enteras (cupos por etapa,
+        bloques de agenda), cuya varianza \textbf{depende del punto evaluado}.
+      \end{block}
+    \column{.48\textwidth}
+      \setbeamercolor{block title}{bg=ucorange,fg=white}
+      \setbeamercolor{block body}{bg=ucsand}
+      \begin{block}{Nivel 2 -- Coordinación}
+        Un mecanismo entre dos instituciones que reparta el recurso compartido de
+        modo que \textbf{ninguna tenga incentivos para operar sola}, incorporando el
+        margen de error con que se conoce el desempeño de cada una.
+      \end{block}
+  \end{columns}
+  \vspace{1.5em}
+  \begin{center}
+    \textit{No existe un marco analítico que apoye de manera integrada las decisiones
+    de capacidad bajo incertidumbre.}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Seis rasgos que el método debe respetar}
+  \begin{itemize}
+    \item<1-> \textbf{Demanda estocástica:} llegadas, inasistencias y cancelaciones.
+    \item<2-> \textbf{Espacio de decisión entero-mixto:} cupos enteros y proporciones continuas.
+    \item<3-> \textbf{Ruido heterocedástico estructural:} $\sigma^2(x)$ depende del régimen operativo.
+    \item<4-> \textbf{Evaluaciones costosas:} cada configuración es una corrida DES.
+    \item<5-> \textbf{Sin gradiente:} el simulador es una caja negra.
+    \item<6-> \textcolor{ucorange}{\textbf{Varias instituciones:}} objetivos propios sobre un recurso compartido.
+  \end{itemize}
+\end{frame}
+
+% =====================================================================
+\section{Revisión bibliográfica}
+% =====================================================================
+
+\begin{frame}{Pilares fundamentales}
+  \begin{itemize}
+    \item<1-> \textbf{Simulación de eventos discretos (DES):} representa flujos de
+      pacientes, colas y reglas operativas, pero se usa sobre todo para evaluar
+      escenarios predefinidos (Law, 2015; Monks y Harper, 2025).
+    \item<2-> \textbf{Optimización vía simulación (SO) y DFO:} ASTRO-DF, COMPASS,
+      R-SPLINE, SMAC3 y regiones de confianza con GP; garantías bajo varianza finita
+      y homogénea o en espacios continuos (Shashaani et al., 2018; Hong y Nelson, 2006;
+      Lindauer et al., 2022).
+    \item<3-> \textbf{Metaheurísticas} (SA, GA, OptQuest): frecuentes en salud, sin
+      garantías cuando la varianza depende del punto (Wang y Demeulemeester, 2023).
+    \item<4-> \textbf{Teoría de juegos cooperativa:} núcleo, Shapley y Nash para
+      pooling de capacidad (Karsten et al., 2015; Gao et al., 2024); con valores de
+      coalición inciertos tomados como dato (Li y Conitzer, 2015; Pantazis et al., 2022, 2024).
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{La brecha: nadie cubre las seis condiciones}
+  \centering\small
+  \begin{tabular}{l cccccc}
+    \toprule
+    \textbf{Familia} & \textbf{DES est.} & $\boldsymbol{\sigma^2(x)}$ & \textbf{Ent.-mixto}
+      & \textbf{Rép. adapt.} & \textbf{Converg.} & \textbf{Coord.} \\
+    \midrule
+    DFO continuo        & \si & \pa & \no & \pa & \si & \no \\
+    SO entera           & \si & \no & \pa & \pa & \si & \no \\
+    Subrogados (RF/GP)  & \si & \pa & \si & \pa & \no & \no \\
+    Subrogados (SK)     & \si & \si & \no & \pa & \no & \no \\
+    Metaheurísticas     & \si & \no & \si & \no & \pa & \no \\
+    Juegos cooperativos & \no & \no & \no & \no & \no & \pa \\
+    \midrule
+    \rowcolor{uclight}
+    \textbf{Marco propuesto} & \si & \si & \si & \si & \textbf{Empírica} & \si \\
+    \bottomrule
+  \end{tabular}
+
+  \vspace{1em}
+  \begin{alertblock}{Las piezas no son separables}
+    El margen de error del DFO fija la tolerancia $\varepsilon$ con que se evalúa la
+    estabilidad de la coalición.
+  \end{alertblock}
+  {\scriptsize \si\ satisface \quad \no\ no satisface \quad \pa\ parcial. Detalle en el Anexo B.}
+\end{frame}
+
+% =====================================================================
+\section{Objetivos}
+% =====================================================================
+
+\begin{frame}{Objetivo general}
+  \vfill
+  \begin{center}
+    \Large Diseñar, formular y evaluar un marco prescriptivo de herramientas de apoyo
+    a la toma de decisiones para la \textcolor{ucblue}{\textbf{coordinación de
+    recursos en sistemas complejos}}.
+  \end{center}
+  \vfill
+\end{frame}
+
+\begin{frame}{Objetivos específicos}
+  \begin{description}[OE5:]
+    \item[OE1:] \textbf{Modelo DES} del sistema compartido CRS Cordillera -- Hospital
+      Luis Tisné: trayectorias multietapa, recursos compartidos y demanda.
+    \item[OE2:] \textbf{Caracterizar el ruido heterocedástico} del evaluador DES
+      según el régimen operativo.
+    \item[OE3:] \textbf{Algoritmo DFO entero-mixto} para evaluadores heterocedásticos,
+      con asignación adaptativa de réplicas.
+    \item[OE4:] \textbf{Mecanismo de gobernanza} con programación por metas y teoría
+      de juegos cooperativa.
+    \item[OE5:] \textbf{Prototipo integrado}, recomendaciones para el caso real y
+      evaluación de transferibilidad.
+  \end{description}
+  \vfill
+  {\scriptsize Alcance: ginecología, desde la atención de especialidad hasta la ruta quirúrgica.}
+\end{frame}
+
+% =====================================================================
+\section{Marco propuesto}
+% =====================================================================
+
+\begin{frame}{Tres componentes acoplados por el margen de error}
+  \centering
+  \begin{tikzpicture}[
+      comp/.style={rectangle, rounded corners=4pt, draw=ucblue, very thick,
+                   fill=uclight, text width=3.1cm, align=center,
+                   minimum height=2.1cm},
+      arr/.style={-{Stealth[length=3mm]}, very thick}]
+    \node[comp] (des) {{\scriptsize\color{ucblue}OE1 · OE2}\\[2pt]\textbf{Evaluador DES}\\[2pt]
+      {\footnotesize desempeño de $x$ con ruido $\sigma^2(x)$}};
+    \node[comp, right=1.8cm of des] (dfo) {{\scriptsize\color{ucblue}OE3}\\[2pt]\textbf{Algoritmo DFO}\\[2pt]
+      {\footnotesize región de confianza + stochastic kriging, réplicas adaptativas}};
+    \node[comp, right=1.8cm of dfo, draw=ucorange, fill=ucsand] (gob)
+      {{\scriptsize\color{ucorange}OE4}\\[2pt]\textbf{Gobernanza}\\[2pt]
+      {\footnotesize $\varepsilon$-núcleo robusto, programación por metas, Shapley}};
+    \draw[arr, ucblue] ([yshift=4mm]des.east) -- node[above,font=\small]{$f(x)\pm\sigma(x)$} ([yshift=4mm]dfo.west);
+    \draw[arr, ucgray, dashed] ([yshift=-4mm]dfo.west) -- node[below,font=\small]{$x$, réplicas} ([yshift=-4mm]des.east);
+    \draw[arr, ucorange] (dfo) -- node[above,font=\small]{margen $\varepsilon$} (gob);
+    \node[rectangle, rounded corners=4pt, fill=ucgreen!15, text width=12.6cm,
+          align=center, below=1cm of dfo, minimum height=1cm] (oe5)
+      {{\scriptsize\color{ucgreen}\textbf{OE5}}\quad Prototipo integrado: configuraciones de
+       capacidad y su asignación para el CRS Cordillera y el Hospital Luis Tisné};
+  \end{tikzpicture}
+\end{frame}
+
+\begin{frame}{Preguntas de investigación e hipótesis}
+  \small
+  \begin{columns}[T]
+    \column{.32\textwidth}
+      \begin{block}{P1 · Algoritmo}
+        ¿Puede un DFO con réplicas adaptativas operar sobre DES heterocedásticos
+        entero-mixtos?\\[4pt]
+        \textbf{H1a} Calidad comparable con menos evaluaciones.\\
+        \textbf{H1b} Convergencia más estable al crecer la heterocedasticidad.
+      \end{block}
+    \column{.32\textwidth}
+      \setbeamercolor{block title}{bg=ucorange,fg=white}
+      \setbeamercolor{block body}{bg=ucsand}
+      \begin{block}{P2 · Coordinación}
+        ¿Concilia la gobernanza los objetivos de ambas instituciones sin incentivos
+        a abandonar?\\[4pt]
+        \textbf{H2a} Menor brecha a las metas que operar sin coordinar.\\
+        \textbf{H2b} Existe una asignación en el $\varepsilon$-núcleo robusto.
+      \end{block}
+    \column{.32\textwidth}
+      \setbeamercolor{block title}{bg=ucgreen,fg=white}
+      \setbeamercolor{block body}{bg=ucgreen!10}
+      \begin{block}{P3 · Marco}
+        ¿Apoya el marco DES+DFO la planificación de capacidad en sistemas compartidos?\\[4pt]
+        \textbf{H3a} Menor espera simulada sin más recursos totales.\\
+        \textbf{H3b} Supuestos transferibles a otro contexto en Chile.
+      \end{block}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Metodología: etapas, métodos y objetivos}
+  \centering\footnotesize
+  \begin{tabularx}{\linewidth}{c p{3.2cm} X c}
+    \toprule
+    \textbf{N.°} & \textbf{Etapa} & \textbf{Método} & \textbf{Objetivo} \\
+    \midrule
+    1 & Revisión y definición del sistema & Revisión bibliográfica; entrevistas con gestores y clínicos; mapeo BPMN & OE1 \\
+    2 & Datos & Registros de ambas instituciones; distribuciones de llegada, duración e inasistencia & OE1 \\
+    3 & DES y ruido & DES con recursos compartidos; verificación y validación (Law, 2015); diseño de experimentos y análisis de varianza & OE1, OE2 \\
+    4 & Algoritmo DFO & Región de confianza con stochastic kriging local; perfiles de desempeño vs.\ ASTRO-DF y SMAC3 & OE3 \\
+    5 & Gobernanza & $\varepsilon$-núcleo robusto con $\varepsilon$ del DFO; programación por metas; Shapley como referencia & OE4 \\
+    6 & Integración y validación & Prototipo; comparación con la configuración vigente; revisión por clínicos y gestores & OE5 \\
+    \bottomrule
+  \end{tabularx}
+\end{frame}
+
+% =====================================================================
+\section{Resultados}
+% =====================================================================
+
+\begin{frame}{Resultados preliminares (IFORS 2026): los algoritmos superan toda política manual}
+  \begin{columns}[T]
+    \column{.48\textwidth}\bignum{263 $\rightarrow$ 177 días}{tiempo promedio en sistema con SMAC-SK ($-33$\,\%)}
+    \column{.48\textwidth}\bignum{1.148 $\rightarrow$ 2.179}{pacientes atendidos ($+90$\,\%), sin trade-off}
+  \end{columns}
+  \vspace{1em}
+  \begin{itemize}
+    \item<2-> \textbf{Los 7 algoritmos} reducen significativamente el tiempo en sistema
+      (Welch, $p \ll 0{,}001$); benchmark de $7\times10$ semillas con números aleatorios comunes.
+    \item<3-> \textcolor{ucorange}{\textbf{Pero las garantías no se transfieren:}} suponen
+      ruido homocedástico y suavidad, ambas violadas por el evaluador DES
+      $\Rightarrow$ motiva OE2 y OE3.
+  \end{itemize}
+  \vfill
+  {\scriptsize Araneda y Carrasco (2026). IFORS, Viena.}
+\end{frame}
+
+\begin{frame}{Resultados esperados}
+  \begin{itemize}
+    \item Un \textbf{modelo DES calibrado y validado}, con la estructura heterocedástica
+      de su evaluador caracterizada.
+    \item Un \textbf{algoritmo DFO entero-mixto} para evaluadores heterocedásticos con
+      asignación adaptativa de réplicas.
+    \item \textbf{Evidencia comparativa} frente al estado del arte: calidad, eficiencia
+      y estabilidad bajo distintos niveles de heterocedasticidad.
+    \item Un \textbf{mecanismo de gobernanza robusto} y las condiciones bajo las cuales
+      la coordinación es estable y mutuamente conveniente.
+    \item Un \textbf{marco prescriptivo integrado} en un prototipo computacional,
+      transferible a otros servicios de especialidad de la red.
+  \end{itemize}
+\end{frame}
+
+% =====================================================================
+\section{Plan de trabajo}
+% =====================================================================
+
+\begin{frame}{Carta Gantt 2026 -- 2028 (trimestres)}
+  \centering
+  \begin{tikzpicture}[x=0.78cm, y=-0.48cm, font=\scriptsize]
+    % encabezados
+    \foreach \yr/\x in {2026/0, 2027/4, 2028/8}{
+      \node[font=\scriptsize\bfseries] at (\x+2, -1.3) {\yr};
+      \draw[ucnavy, thick] (\x+0.1, -0.9) -- (\x+3.9, -0.9);
+      \foreach \q in {1,...,4}{\node[text=ucgray] at (\x+\q-0.5, -0.4) {T\q};}
+    }
+    % filas: etiqueta, inicio (trimestre 1..12), fin, color
+    \gbar{0.6}{1. Revisión del sistema}{3}{5}{ucblue}
+    \gbar{1.6}{2. Datos}{3}{6}{ucblue}
+    \gbar{2.6}{3. DES y ruido}{4}{7}{ucblue}
+    \gbar{3.6}{4. Algoritmo DFO}{5}{8}{ucblue}
+    \gbar{4.6}{5. Gobernanza}{7}{10}{ucorange}
+    \gbar{5.6}{6. Integración y validación}{9}{12}{ucgreen}
+    \draw[ucgray!50] (-4.5, 6.3) -- (12, 6.3);
+    \gbar{7.0}{\textit{Candidatura}}{3}{5}{ucgray}
+    \node[anchor=east, text=ucnavy] at (-0.2, 8.0) {\textit{Congresos}};
+    \foreach \q in {7,10}{\fill[ucgray, rounded corners=1pt] (\q-1+0.05, 7.68) rectangle (\q-0.05, 8.32);}
+    \node[anchor=east, text=ucnavy] at (-0.2, 9.0) {\textit{Publicaciones}};
+    \foreach \q in {6,8,10}{\fill[ucgray, rounded corners=1pt] (\q-1+0.05, 8.68) rectangle (\q-0.05, 9.32);}
+    \fill[ucnavy, rounded corners=1pt] (11.05, 8.68) rectangle (11.95, 9.32);
+    \gbar{10.0}{\textit{Pasantía}}{10}{10}{ucgray}
+    \gbar{11.0}{\textit{Defensa de tesis}}{12}{12}{ucnavy}
+  \end{tikzpicture}
+
+  {\scriptsize Gris: hitos académicos. Publicaciones: envíos (gris) y aceptación (azul oscuro). Detalle en el Anexo A.}
+\end{frame}
+
+\begin{frame}{Propuesta de publicaciones}
+  \begin{enumerate}
+    \item \textbf{Aplicada:} DES+DFO con SMAC y stochastic kriging para la capacidad
+      de la CMI del CRS Cordillera, frente a la configuración vigente.\\
+      \hfill\textit{Health Care Management Science}
+    \item \textbf{Metodológica:} algoritmo DFO entero-mixto con réplicas adaptativas
+      para evaluadores heterocedásticos y su convergencia empírica.\\
+      \hfill\textit{INFORMS J.\ on Computing · ACM TOMACS · IISE Transactions}
+    \item \textbf{Aplicada y de coordinación:} marco DES+DFO con gobernanza por metas
+      y juegos cooperativos, con estabilidad derivada del margen de error.\\
+      \hfill\textit{European Journal of Operational Research}
+  \end{enumerate}
+  \vfill
+  {\scriptsize Ya presentado: \textit{A Prescriptive Simulation--Hybrid Optimization Framework for
+  Capacity Planning in Minimally Invasive Gynecology}, IFORS 2026, Viena.}
+\end{frame}
+
+\begin{frame}{Infraestructura y presupuesto}
+  \begin{columns}[T]
+    \column{.48\textwidth}
+      \begin{block}{Infraestructura}
+        \begin{itemize}
+          \item Datos clínicos históricos del CRS Cordillera y del Hospital Luis Tisné (SSMO).
+          \item Estación i9-10900K, 64 GB RAM, y clúster de la Escuela de Ingeniería UC.
+          \item Asesoría clínica y operativa: entrevistas y talleres.
+          \item Respaldo institucional del SSMO.
+        \end{itemize}
+      \end{block}
+    \column{.48\textwidth}
+      \begin{block}{Financiamiento}
+        \begin{itemize}
+          \item \textbf{Beca de doctorado VRIP (2025):} arancel y mantención, hasta \$7.200.000 anuales.
+          \item \textbf{Fondecyt Regular 1231245} (director): asistencia a congresos, entre otros.
+        \end{itemize}
+      \end{block}
+  \end{columns}
+\end{frame}
+
+% =====================================================================
+\section{Discusión}
+% =====================================================================
+
+\begin{frame}{Contribución central}
+  \vfill
+  \begin{center}
+    \large Conectar un evaluador DFO bajo heterocedasticidad con la
+    \textcolor{ucblue}{\textbf{condición de estabilidad}} de un mecanismo de
+    coordinación cooperativa entre instituciones de salud independientes.
+  \end{center}
+  \vfill
+  \begin{itemize}
+    \item<2-> El margen de error del DFO depende de la heterocedasticidad y de las réplicas asignadas.
+    \item<3-> Ese margen fija la tolerancia $\varepsilon$ con la que se evalúa la estabilidad de la coalición.
+    \item<4-> La existencia del núcleo depende de la estructura de decisión, aquí entero-mixta.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[plain]
+  \vfill
+  \begin{center}
+    {\Huge\bfseries\color{ucblue} ¡Gracias!}\\[1em]
+    {\large Raúl Araneda Martínez}\\
+    Pontificia Universidad Católica de Chile
+  \end{center}
+  \vfill
+\end{frame}
+
+\end{document}
