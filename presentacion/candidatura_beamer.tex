@@ -84,7 +84,7 @@
   Co-directores externos: María de los Ángeles Zúñiga Hidalgo y Christian García Calavaro (SSMO)\\[4pt]
   \textit{Programa de Ingeniería y Ciencias con la Industria}\\
   \textit{Escuela de Ingeniería, Pontificia Universidad Católica de Chile}}
-\date{[Fecha del examen]}
+\date{Noviembre 2026}
 
 \begin{document}
 
@@ -96,13 +96,11 @@
   \begin{tikzpicture}[remember picture, overlay]
     % Banda superior institucional
     \fill[ucblue] (current page.north west) rectangle ([yshift=-1.4cm]current page.north east);
-    \fill[white] ([xshift=.8cm,yshift=-.7cm]current page.north west) circle (.6cm);
     \node at ([xshift=.8cm,yshift=-.7cm]current page.north west)
-      {\IfFileExists{logo_uc.png}{\includegraphics[height=1.06cm]{logo_uc.png}}{\color{ucblue}\bfseries UC}};
+      {\IfFileExists{logo_uc_blanco.png}{\includegraphics[height=1.15cm]{logo_uc_blanco.png}}{\color{white}\bfseries UC}};
     \node[anchor=west, text=white, align=left, font=\rmfamily\small]
       at ([xshift=1.6cm,yshift=-.7cm]current page.north west)
-      {Escuela de Ingeniería, Dirección de Postgrado\\
-       Programa de Ingeniería y Ciencias con la Industria\\
+      {Escuela de Ingeniería Industrial y de Sistemas\\
        Pontificia Universidad Católica de Chile};
     % Banda del título con filete amarillo
     \fill[ucblue] ([yshift=-1.95cm]current page.north west) rectangle ([yshift=-4.05cm]current page.north east);
@@ -116,14 +114,14 @@
       {{\Large Raúl H. Araneda Martínez}\\[2pt]
        {\itshape Director: Rodrigo A. Carrasco}\\
        {\itshape\footnotesize Co-directores externos: María de los Ángeles Zúñiga Hidalgo y Christian García Calavaro (SSMO)}\\[6pt]
-       {\color{darkgray}\small Examen de candidatura -- Proyecto de tesis doctoral}\\
-       {\color{darkgray} [Fecha del examen]}\\
+       {\color{darkgray}\small Examen de candidatura}\\
+       {\color{darkgray} Noviembre 2026}\\
        {\color{darkgray}\footnotesize Santiago, Chile}};
     % Pie izquierdo
     \node[anchor=south west, align=left, text=darkgray, font=\rmfamily\scriptsize]
       at ([xshift=.45cm,yshift=.25cm]current page.south west)
       {Presentado por Raúl H. Araneda\\[2pt]
-       Investigación parcialmente financiada por Fondecyt Regular 1231245};
+       Investigación parcialmente financiada por Fondecyt Regular 1231245 y Beca Doctorado VRIP};
   \end{tikzpicture}
 \end{frame}
 
