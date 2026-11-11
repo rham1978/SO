@@ -98,7 +98,7 @@
     \fill[ucblue] (current page.north west) rectangle ([yshift=-1.4cm]current page.north east);
     \fill[white] ([xshift=.8cm,yshift=-.7cm]current page.north west) circle (.6cm);
     \node at ([xshift=.8cm,yshift=-.7cm]current page.north west)
-      {\includegraphics[height=1.06cm]{logo_uc.png}};
+      {\IfFileExists{logo_uc.png}{\includegraphics[height=1.06cm]{logo_uc.png}}{\color{ucblue}\bfseries UC}};
     \node[anchor=west, text=white, align=left, font=\rmfamily\small]
       at ([xshift=1.6cm,yshift=-.7cm]current page.north west)
       {Escuela de Ingeniería, Dirección de Postgrado\\
