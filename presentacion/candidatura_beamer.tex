@@ -89,10 +89,42 @@
 \begin{document}
 
 % =====================================================================
+%  Portada (diseño de la portada de IFORS 2026)
+% =====================================================================
+\definecolor{ucyellow}{HTML}{FFC20E}
 \begin{frame}[plain]
-  \titlepage
-  \vfill
-  {\scriptsize Proyecto parcialmente financiado por Fondecyt Regular 1231245 y Beca de doctorado VRIP.}
+  \begin{tikzpicture}[remember picture, overlay]
+    % Banda superior institucional
+    \fill[ucblue] (current page.north west) rectangle ([yshift=-1.4cm]current page.north east);
+    \fill[white] ([xshift=.8cm,yshift=-.7cm]current page.north west) circle (.6cm);
+    \node at ([xshift=.8cm,yshift=-.7cm]current page.north west)
+      {\includegraphics[height=1.06cm]{logo_uc.png}};
+    \node[anchor=west, text=white, align=left, font=\rmfamily\small]
+      at ([xshift=1.6cm,yshift=-.7cm]current page.north west)
+      {Escuela de Ingeniería, Dirección de Postgrado\\
+       Programa de Ingeniería y Ciencias con la Industria\\
+       Pontificia Universidad Católica de Chile};
+    % Banda del título con filete amarillo
+    \fill[ucblue] ([yshift=-1.95cm]current page.north west) rectangle ([yshift=-4.05cm]current page.north east);
+    \fill[ucyellow] ([yshift=-4.05cm]current page.north west) rectangle ([yshift=-4.16cm]current page.north east);
+    \node[text=white, align=center, font=\rmfamily\LARGE, text width=.92\paperwidth]
+      at ([yshift=-3.0cm]current page.north)
+      {Coordination of Complex Healthcare Systems\\with Shared Resources};
+    % Autor, dirección y fecha
+    \node[align=center, anchor=north, font=\rmfamily]
+      at ([yshift=-4.5cm]current page.north)
+      {{\Large Raúl H. Araneda Martínez}\\[2pt]
+       {\itshape Director: Rodrigo A. Carrasco}\\
+       {\itshape\footnotesize Co-directores externos: María de los Ángeles Zúñiga Hidalgo y Christian García Calavaro (SSMO)}\\[6pt]
+       {\color{darkgray}\small Examen de candidatura -- Proyecto de tesis doctoral}\\
+       {\color{darkgray} [Fecha del examen]}\\
+       {\color{darkgray}\footnotesize Santiago, Chile}};
+    % Pie izquierdo
+    \node[anchor=south west, align=left, text=darkgray, font=\rmfamily\scriptsize]
+      at ([xshift=.45cm,yshift=.25cm]current page.south west)
+      {Presentado por Raúl H. Araneda\\[2pt]
+       Investigación parcialmente financiada por Fondecyt Regular 1231245};
+  \end{tikzpicture}
 \end{frame}
 
 \begin{frame}{Agenda}
