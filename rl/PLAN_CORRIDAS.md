@@ -2,17 +2,20 @@
 
 Costo medido: 1 episodio (1 año, 52 decisiones) ≈ 1,3 s en un núcleo. Con 4 núcleos, ≈ 11 000 episodios por hora.
 
-## Paso 1 — Referencias (hecho, 16/11)
+## Paso 1 — Referencias (hecho, 16/11, presupuesto en cupos)
 
-`python politicas_referencia.py 20` (≈ 13 min). Validación (semillas 10000–10099, 100 semillas, media ± IC95):
+`python politicas_referencia.py 20` (≈ 15 min). Validación (semillas 10000–10099, 100 semillas, media ± IC95):
 
-| Política | TTS (días) | Atenciones/año |
-|---|---|---|
-| Aleatoria | 252,6 ± 1,2 | 1 215 |
-| Operación base (acción 24) | 247,7 ± 1,1 | 1 216 |
-| **Mejor fija (acción 42)**: 1ra 20, control 50, eco 62, lab 40, cirugía 15 | **209,7 ± 1,2** | 1 371 |
+| Política | 1ra / control / eco / lab | TTS (días) | Atenciones/año |
+|---|---|---|---|
+| Operación base (acción 17) | 16 / 40 / 50 / 54 | 247,7 ± 1,1 | 1 216 |
+| Aleatoria | — | 240,0 ± 1,3 | 1 287 |
+| **Mejor fija (acción 25)** | 20 / 36 / 56 / 48 | **234,0 ± 1,3** | 1 376 |
+| Acción 24 | 20 / 36 / 50 / 54 | 236,0 ± 1,2 | 1 379 |
+| Acción 30 | 24 / 32 / 44 / 60 | 236,5 ± 1,2 | 1 502 |
 
-Observación: la mejor fija lleva 1ra consulta, control y ecografía a su nivel máximo y laboratorio y cirugía al mínimo. Laboratorio y cirugía parecen no ser cuello de botella con estos parámetros; esto depende del supuesto `HORAS_CIRUGIA = 2`.
+Las cuatro mejores fijas quedan dentro del ruido entre sí; todas mueven cupos de control a 1ra consulta. La acción 30 atiende 9 % más pacientes con solo +2,5 días de TTS.
+Resultados con el presupuesto anterior en horas: `resultados/v1_horas/`.
 
 ## Paso 2 — Agentes
 
