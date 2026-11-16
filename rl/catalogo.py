@@ -7,8 +7,11 @@ repartirlos:
 
   Especialista (56 cupos/sem):  1ra consulta  (fixed_weekly_capacity)
                                 + control post (fixed_post_control_capacity)
-  Exámenes   (104 cupos/sem):  ecografía UGD + matrona (ugd_us_per_week, mat_us_per_week)
-                                + laboratorio UGD (ugd_lab_per_week)
+  Exámenes    (75 cupos/sem):  ecografía UGD + matrona (ugd_us_per_week, mat_us_per_week)
+                                + laboratorio matrona (mat_lab_per_week)
+
+Nota: el laboratorio UGD (ugd_lab_per_week) se genera en el simulador pero ningún
+paciente lo reserva; por eso la palanca de laboratorio controla mat_lab_per_week.
 
 La cirugía queda FUERA de la acción: el CRS la resuelve como una caja negra con
 ~2,5 meses de demora (crs_lead_days 60–90 en el simulador), con su capacidad
@@ -20,13 +23,13 @@ presupuesto de cupos que la operación base.
 """
 import itertools
 
-BASE = {"first": 16, "control": 40, "eco": 50, "lab": 54}
+BASE = {"first": 16, "control": 40, "eco": 50, "lab": 25}
 CUPOS_ESPECIALISTA = BASE["first"] + BASE["control"]  # 56
-CUPOS_EXAMENES = BASE["eco"] + BASE["lab"]            # 104
+CUPOS_EXAMENES = BASE["eco"] + BASE["lab"]            # 75
 SURG_FIJO = 20
 
 DESPLAZ_ESPECIALISTA = (-8, -4, 0, 4, 8, 12)          # 1ra consulta 8..28, control 48..28
-DESPLAZ_EXAMENES = (-18, -12, -6, 0, 6, 12, 18)       # ecografía 32..68, laboratorio 72..36
+DESPLAZ_EXAMENES = (-9, -6, -3, 0, 3, 6, 9)           # ecografía 41..59, laboratorio 34..16
 PALANCAS = ("first", "control", "eco", "lab")
 
 
@@ -49,7 +52,7 @@ def aplicar_accion(cfg, a: int) -> None:
     cfg.fixed_post_control_capacity = c["control"]
     cfg.ugd_us_per_week = c["eco"] // 2
     cfg.mat_us_per_week = c["eco"] - c["eco"] // 2
-    cfg.ugd_lab_per_week = c["lab"]
+    cfg.mat_lab_per_week = c["lab"]
     cfg.surg_throughput_per_week = SURG_FIJO
 
 
