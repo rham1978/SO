@@ -1,0 +1,51 @@
+fija   0 {'first': 12, 'control': 30, 'eco': 38, 'lab': 54, 'surg': 25} TTS 286.8 ± 2.2
+fija   1 {'first': 12, 'control': 30, 'eco': 38, 'lab': 68, 'surg': 20} TTS 286.8 ± 2.2
+fija   2 {'first': 12, 'control': 30, 'eco': 50, 'lab': 54, 'surg': 20} TTS 281.5 ± 2.3
+fija   3 {'first': 12, 'control': 30, 'eco': 50, 'lab': 68, 'surg': 15} TTS 281.5 ± 2.3
+fija   4 {'first': 12, 'control': 30, 'eco': 62, 'lab': 40, 'surg': 20} TTS 289.7 ± 2.6
+fija   5 {'first': 12, 'control': 30, 'eco': 62, 'lab': 54, 'surg': 15} TTS 289.7 ± 2.6
+fija   6 {'first': 12, 'control': 40, 'eco': 38, 'lab': 54, 'surg': 25} TTS 277.8 ± 1.4
+fija   7 {'first': 12, 'control': 40, 'eco': 50, 'lab': 40, 'surg': 25} TTS 260.7 ± 2.5
+fija   8 {'first': 12, 'control': 40, 'eco': 50, 'lab': 54, 'surg': 20} TTS 260.7 ± 2.5
+fija   9 {'first': 12, 'control': 40, 'eco': 62, 'lab': 40, 'surg': 20} TTS 268.4 ± 2.9
+fija  10 {'first': 12, 'control': 50, 'eco': 38, 'lab': 54, 'surg': 25} TTS 277.5 ± 1.5
+fija  11 {'first': 12, 'control': 50, 'eco': 38, 'lab': 68, 'surg': 15} TTS 277.5 ± 1.5
+fija  12 {'first': 12, 'control': 50, 'eco': 50, 'lab': 40, 'surg': 25} TTS 260.9 ± 1.9
+fija  13 {'first': 12, 'control': 50, 'eco': 50, 'lab': 54, 'surg': 15} TTS 260.9 ± 1.9
+fija  14 {'first': 12, 'control': 50, 'eco': 62, 'lab': 40, 'surg': 20} TTS 254.6 ± 2.4
+fija  15 {'first': 16, 'control': 30, 'eco': 38, 'lab': 54, 'surg': 25} TTS 273.4 ± 2.0
+fija  16 {'first': 16, 'control': 30, 'eco': 38, 'lab': 68, 'surg': 20} TTS 273.4 ± 2.0
+fija  17 {'first': 16, 'control': 30, 'eco': 50, 'lab': 40, 'surg': 25} TTS 266.7 ± 2.3
+fija  18 {'first': 16, 'control': 30, 'eco': 50, 'lab': 54, 'surg': 20} TTS 266.7 ± 2.3
+fija  19 {'first': 16, 'control': 30, 'eco': 62, 'lab': 40, 'surg': 20} TTS 268.7 ± 2.1
+fija  20 {'first': 16, 'control': 30, 'eco': 62, 'lab': 54, 'surg': 15} TTS 268.7 ± 2.1
+fija  21 {'first': 16, 'control': 40, 'eco': 38, 'lab': 54, 'surg': 25} TTS 270.4 ± 1.7
+fija  22 {'first': 16, 'control': 40, 'eco': 38, 'lab': 68, 'surg': 15} TTS 270.4 ± 1.7
+fija  23 {'first': 16, 'control': 40, 'eco': 50, 'lab': 40, 'surg': 25} TTS 248.9 ± 2.6
+fija  24 {'first': 16, 'control': 40, 'eco': 50, 'lab': 54, 'surg': 20} TTS 248.9 ± 2.6
+fija  25 {'first': 16, 'control': 40, 'eco': 62, 'lab': 40, 'surg': 20} TTS 245.7 ± 2.7
+fija  26 {'first': 16, 'control': 50, 'eco': 38, 'lab': 68, 'surg': 15} TTS 269.7 ± 1.9
+fija  27 {'first': 16, 'control': 50, 'eco': 50, 'lab': 40, 'surg': 25} TTS 246.4 ± 2.4
+fija  28 {'first': 16, 'control': 50, 'eco': 50, 'lab': 54, 'surg': 15} TTS 246.4 ± 2.4
+fija  29 {'first': 20, 'control': 30, 'eco': 38, 'lab': 54, 'surg': 25} TTS 261.4 ± 2.5
+fija  30 {'first': 20, 'control': 30, 'eco': 38, 'lab': 68, 'surg': 20} TTS 261.4 ± 2.5
+fija  31 {'first': 20, 'control': 30, 'eco': 50, 'lab': 40, 'surg': 25} TTS 246.7 ± 2.2
+fija  32 {'first': 20, 'control': 30, 'eco': 50, 'lab': 54, 'surg': 20} TTS 246.7 ± 2.2
+fija  33 {'first': 20, 'control': 30, 'eco': 62, 'lab': 40, 'surg': 20} TTS 247.0 ± 2.2
+fija  34 {'first': 20, 'control': 30, 'eco': 62, 'lab': 54, 'surg': 15} TTS 247.0 ± 2.2
+fija  35 {'first': 20, 'control': 40, 'eco': 38, 'lab': 54, 'surg': 25} TTS 259.3 ± 1.3
+fija  36 {'first': 20, 'control': 40, 'eco': 38, 'lab': 68, 'surg': 15} TTS 259.3 ± 1.3
+fija  37 {'first': 20, 'control': 40, 'eco': 50, 'lab': 40, 'surg': 25} TTS 227.0 ± 2.9
+fija  38 {'first': 20, 'control': 40, 'eco': 62, 'lab': 40, 'surg': 20} TTS 226.1 ± 3.3
+fija  39 {'first': 20, 'control': 50, 'eco': 38, 'lab': 54, 'surg': 20} TTS 257.3 ± 1.8
+fija  40 {'first': 20, 'control': 50, 'eco': 38, 'lab': 68, 'surg': 15} TTS 257.3 ± 1.8
+fija  41 {'first': 20, 'control': 50, 'eco': 50, 'lab': 54, 'surg': 15} TTS 230.1 ± 2.6
+fija  42 {'first': 20, 'control': 50, 'eco': 62, 'lab': 40, 'surg': 15} TTS 209.8 ± 2.5
+finalista 42 TTS 209.68 ± 1.15
+finalista 38 TTS 225.08 ± 1.44
+finalista 37 TTS 228.74 ± 1.30
+finalista 41 TTS 228.64 ± 1.08
+finalista 25 TTS 246.98 ± 1.28
+finalista 24 TTS 247.67 ± 1.14
+aleatoria TTS 252.64 ± 1.20
+mejor fija: 42 {'first': 20, 'control': 50, 'eco': 62, 'lab': 40, 'surg': 15} base: 24 (794s)
