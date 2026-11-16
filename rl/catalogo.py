@@ -1,46 +1,40 @@
 """
-Catálogo de acciones: configuraciones semanales de cupos que respetan un
-presupuesto de horas.
+Catálogo de acciones: configuraciones semanales de cupos con presupuesto en cupos.
 
-Palancas (cupos por semana) y su duración en horas por cupo:
-    first   : 1ra consulta especialista        (fixed_weekly_capacity)       20 min
-    control : control post-consulta            (fixed_post_control_capacity) 20 min
-    eco     : ecografías UGD + matrona (50/50) (ugd_us_per_week, mat_us_per_week) 60 min
-    lab     : laboratorio UGD                  (ugd_lab_per_week)            60 min
-    surg    : cirugías por semana              (surg_throughput_per_week)    HORAS_CIRUGIA
+El CRS gestiona cupos, no horas. Por eso el presupuesto se expresa en cupos por
+semana y se mantiene constante dentro de cada equipo; el agente solo decide cómo
+repartirlos:
 
-Cada palanca toma un nivel en NIVELES (multiplicador sobre la operación base).
-Se conservan solo las combinaciones cuyo costo en horas no supera el presupuesto
-de la operación base (PRESUPUESTO_H) y que usan al menos USO_MIN de él
-(descarta configuraciones que dejan horas sin usar). Así todas las políticas, fijas o
-adaptativas, gastan como máximo las mismas horas por semana.
+  Especialista (56 cupos/sem):  1ra consulta  (fixed_weekly_capacity)
+                                + control post (fixed_post_control_capacity)
+  Exámenes   (104 cupos/sem):  ecografía UGD + matrona (ugd_us_per_week, mat_us_per_week)
+                                + laboratorio UGD (ugd_lab_per_week)
 
-SUPUESTO A VALIDAR: HORAS_CIRUGIA (horas de pabellón + equipo por cirugía).
+La cirugía queda FUERA de la acción: el CRS la resuelve como una caja negra con
+~2,5 meses de demora (crs_lead_days 60–90 en el simulador), con su capacidad
+base fija (surg_throughput_per_week = 20).
+
+Acción = (d, e): se mueven d cupos de control a 1ra consulta y e cupos de
+laboratorio a ecografía. Todas las acciones gastan exactamente el mismo
+presupuesto de cupos que la operación base.
 """
 import itertools
 
-HORAS_CIRUGIA = 2.0
+BASE = {"first": 16, "control": 40, "eco": 50, "lab": 54}
+CUPOS_ESPECIALISTA = BASE["first"] + BASE["control"]  # 56
+CUPOS_EXAMENES = BASE["eco"] + BASE["lab"]            # 104
+SURG_FIJO = 20
 
-BASE = {"first": 16, "control": 40, "eco": 50, "lab": 54, "surg": 20}
-HORAS_POR_CUPO = {"first": 20 / 60, "control": 20 / 60, "eco": 1.0, "lab": 1.0, "surg": HORAS_CIRUGIA}
-NIVELES = (0.75, 1.0, 1.25)
-USO_MIN = 0.95
-PALANCAS = tuple(BASE)
-
-
-def horas(cfg_cupos: dict) -> float:
-    return sum(cfg_cupos[k] * HORAS_POR_CUPO[k] for k in PALANCAS)
-
-
-PRESUPUESTO_H = horas(BASE)
+DESPLAZ_ESPECIALISTA = (-8, -4, 0, 4, 8, 12)          # 1ra consulta 8..28, control 48..28
+DESPLAZ_EXAMENES = (-18, -12, -6, 0, 6, 12, 18)       # ecografía 32..68, laboratorio 72..36
+PALANCAS = ("first", "control", "eco", "lab")
 
 
 def _construir():
     cat = []
-    for mults in itertools.product(NIVELES, repeat=len(PALANCAS)):
-        c = {k: int(round(BASE[k] * m)) for k, m in zip(PALANCAS, mults)}
-        if USO_MIN * PRESUPUESTO_H - 1e-9 <= horas(c) <= PRESUPUESTO_H + 1e-9:
-            cat.append(c)
+    for d, e in itertools.product(DESPLAZ_ESPECIALISTA, DESPLAZ_EXAMENES):
+        cat.append({"first": BASE["first"] + d, "control": BASE["control"] - d,
+                    "eco": BASE["eco"] + e, "lab": BASE["lab"] - e})
     return cat
 
 
@@ -56,10 +50,11 @@ def aplicar_accion(cfg, a: int) -> None:
     cfg.ugd_us_per_week = c["eco"] // 2
     cfg.mat_us_per_week = c["eco"] - c["eco"] // 2
     cfg.ugd_lab_per_week = c["lab"]
-    cfg.surg_throughput_per_week = c["surg"]
+    cfg.surg_throughput_per_week = SURG_FIJO
 
 
 if __name__ == "__main__":
-    print(f"Presupuesto: {PRESUPUESTO_H:.1f} h/semana; {N_ACCIONES} acciones; base = {ACCION_BASE}")
+    print(f"{N_ACCIONES} acciones; base = {ACCION_BASE}; "
+          f"presupuesto especialista {CUPOS_ESPECIALISTA}, exámenes {CUPOS_EXAMENES} cupos/sem")
     for i, c in enumerate(CATALOGO):
-        print(i, c, f"{horas(c):.1f} h")
+        print(i, c)

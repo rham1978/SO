@@ -42,7 +42,7 @@ N_WEEKS = 52
 # Particiones por semilla del simulador (fijadas antes de entrenar)
 SEMILLAS_TRAIN = range(0, 10_000)
 SEMILLAS_VAL = range(10_000, 10_100)
-SEMILLAS_TEST = range(20_000, 20_030)
+SEMILLAS_TEST = range(500_000, 500_030)  # mismo bloque de re-evaluación de incumbentes de benchmark_riguroso.py (SMAC)
 
 # ── Agrupación de estados del paciente para la observación ──────────────────
 def _grupo(state: str) -> str | None:
@@ -68,7 +68,7 @@ OBS_NAMES = (
     [f"first_wait_{p}" for p in PRIORIDADES]
     + list(GRUPOS_POST)
     + ["first_wait_age_days", "exam_waiters", "post_ctrl_blocked_week", "sin_week", "cos_week"]
-    + ["prev_first", "prev_control", "prev_eco", "prev_lab", "prev_surg"]
+    + ["prev_first", "prev_control", "prev_eco", "prev_lab"]
 )
 OBS_DIM = len(OBS_NAMES)
 
@@ -117,7 +117,7 @@ def observar(model, prev_action: int, blocked_week: int, week: int) -> np.ndarra
     ang = 2 * math.pi * (week % 52) / 52
     v = [c[f"first_wait_{p}"] for p in PRIORIDADES] + [c[g] for g in GRUPOS_POST]
     v += [age_sum / age_n if age_n else 0.0, model._exam_waiters, blocked_week, math.sin(ang), math.cos(ang)]
-    v += [prev["first"], prev["control"], prev["eco"], prev["lab"], prev["surg"]]
+    v += [prev["first"], prev["control"], prev["eco"], prev["lab"]]
     return np.asarray(v, dtype=np.float32)
 
 
