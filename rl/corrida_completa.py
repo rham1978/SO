@@ -48,6 +48,8 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--out", default="resultados/completa")
     p.add_argument("--copia", default=None, help="carpeta persistente para replicar resultados")
+    p.add_argument("--sin_smac", action="store_true", help="omite SMAC-SK (p. ej. en Windows sin SMAC3)")
+    p.add_argument("--inits", default="0,1,2,3,4", help="inicializaciones a entrenar, p. ej. 3,4")
     a = p.parse_args()
     out, COPIA = a.out, a.copia
     os.makedirs(out, exist_ok=True)
@@ -56,7 +58,7 @@ if __name__ == "__main__":
 
     if not os.path.exists(f"{out}/referencias.json"):
         run([py, "politicas_referencia.py", "--out", out], log)
-    if not os.path.exists(f"{out}/smac_sk.json"):
+    if not a.sin_smac and not os.path.exists(f"{out}/smac_sk.json"):
         run([py, "smac_sk_presupuesto.py", "--out", out], log)
 
     elegidos = {}
@@ -73,7 +75,7 @@ if __name__ == "__main__":
         print(m, "hiperparámetros elegidos:", elegidos[m], "(L val por config:", mejores, ")", flush=True)
     json.dump(elegidos, open(f"{out}/hp_elegidos.json", "w"), indent=1)
 
-    for s in INITS:
+    for s in [int(x) for x in a.inits.split(",")]:
         for m in HP:
             d = f"{out}/{m}_s{s}"
             if not os.path.exists(f"{d}/curva.json"):

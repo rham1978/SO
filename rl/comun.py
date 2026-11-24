@@ -38,7 +38,7 @@ class Normalizador:
         (bloque reservado al final del rango, que los agentes no usan para entrenar)."""
         semillas = list(SEMILLAS_TRAIN[-n_episodios:])
         own = ex is None
-        ex = ex or ProcessPoolExecutor(os.cpu_count())
+        ex = ex or ProcessPoolExecutor(__import__("presupuesto").nucleos())
         try:
             trajs = list(ex.map(_rollout_aleatorio, semillas))
         finally:

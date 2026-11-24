@@ -46,7 +46,7 @@ def entrenar(episodios=P.B_TRAIN, lote=8, lr=1e-3, gamma=0.99, beta_ent=0.01, se
     np.random.seed(semilla)
     config = dict(metodo="reinforce", episodios=episodios, lote=lote, lr=lr, gamma=gamma,
                   beta_ent=beta_ent, semilla=semilla, eval_cada=eval_cada, n_eval=n_eval)
-    with ProcessPoolExecutor(n_workers or os.cpu_count()) as ex:
+    with ProcessPoolExecutor(n_workers or P.nucleos()) as ex:
         norm = normalizador_compartido(n_norm, ex)
         pol = mlp(N_ACCIONES)
         opt = torch.optim.Adam(pol.parameters(), lr=lr)

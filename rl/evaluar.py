@@ -20,7 +20,7 @@ def _job(args):
 def evaluar(make_policy, semillas, n_workers: int | None = None, **rollout_kw) -> list[dict]:
     """make_policy(seed) -> policy_fn; debe ser pickleable (función de módulo o functools.partial).
     rollout_kw se pasa a entorno.rollout (cfg_overrides, aplicar_acciones)."""
-    n_workers = n_workers or os.cpu_count()
+    n_workers = n_workers or __import__("presupuesto").nucleos()
     with ProcessPoolExecutor(n_workers) as ex:
         return list(ex.map(_job, [(make_policy, s, rollout_kw) for s in semillas], chunksize=2))
 

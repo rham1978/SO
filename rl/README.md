@@ -36,6 +36,8 @@ configuración fija y a una política aleatoria, con el mismo presupuesto de cup
 
 ## Reproducir
 
+Para correr en tu propio computador, ver [`CORRER_EN_PC.md`](CORRER_EN_PC.md).
+
 ```bash
 pip install -r requirements.txt
 python validar_estadistico.py 12        # simulador original vs rápido (~5 min, 4 núcleos)

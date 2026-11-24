@@ -29,3 +29,9 @@ assert B_FIJA <= B, B_FIJA
 
 # Corrida pequeña (humo): mismo código, presupuesto reducido ~1/30
 HUMO = dict(B=100, N_EVAL=4, N_CHECK=2, N_TAMIZ=2, TOP_K=3, N_CONF=4)
+
+
+def nucleos() -> int:
+    """Procesos en paralelo: variable de entorno RL_NUCLEOS o todos los núcleos."""
+    import os
+    return int(os.environ.get("RL_NUCLEOS", 0)) or os.cpu_count()

@@ -47,7 +47,7 @@ def entrenar(episodios=P.B_TRAIN, lote=8, lr=3e-4, clip=0.2, gamma=0.99, lam=0.9
                   epocas=epocas, minilote=minilote, beta_ent=beta_ent, coef_v=coef_v, semilla=semilla,
                   eval_cada=eval_cada, n_eval=n_eval)
     rng = np.random.default_rng(semilla)
-    with ProcessPoolExecutor(n_workers or os.cpu_count()) as ex:
+    with ProcessPoolExecutor(n_workers or P.nucleos()) as ex:
         norm = normalizador_compartido(n_norm, ex)
         actor, critico = mlp(N_ACCIONES), mlp(1)
         opt = torch.optim.Adam(list(actor.parameters()) + list(critico.parameters()), lr=lr)

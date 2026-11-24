@@ -52,7 +52,7 @@ def entrenar(episodios=P.B_TRAIN, lote=8, lr=1e-3, gamma=0.99, obj_cada=500, buf
     config = dict(metodo="ddqn", episodios=episodios, lote=lote, lr=lr, gamma=gamma, obj_cada=obj_cada,
                   buffer=buffer, minilote=minilote, pasos_por_trans=pasos_por_trans, eps_fin=eps_fin,
                   frac_eps=frac_eps, semilla=semilla, eval_cada=eval_cada, n_eval=n_eval)
-    with ProcessPoolExecutor(n_workers or os.cpu_count()) as ex:
+    with ProcessPoolExecutor(n_workers or P.nucleos()) as ex:
         norm = normalizador_compartido(n_norm, ex)
         q, q_obj = mlp(N_ACCIONES), mlp(N_ACCIONES)
         q_obj.load_state_dict(q.state_dict())

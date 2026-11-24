@@ -16,7 +16,7 @@ def job(args):
 if __name__ == "__main__":
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 12
     jobs = [(s, f) for s in range(n) for f in (False, True)]
-    with ProcessPoolExecutor(4) as ex:
+    with ProcessPoolExecutor(__import__("presupuesto").nucleos()) as ex:
         res = list(ex.map(job, jobs))
     json.dump(res, open("validacion_sim_fast.json", "w"), indent=1)
     for fast in (False, True):
