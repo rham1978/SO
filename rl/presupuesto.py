@@ -10,9 +10,8 @@ porque es idéntica para todos.
       entrenamiento   B_TRAIN = B - N_CHECK * N_EVAL
       selección       N_CHECK puntos de control × N_EVAL semillas de validación
   Mejor configuración fija (búsqueda exhaustiva en el catálogo):
-      tamizaje        42 acciones × N_TAMIZ semillas de validación
-      confirmación    TOP_K finalistas × (100 - N_TAMIZ) semillas restantes
-      total           42·N_TAMIZ + TOP_K·(100 - N_TAMIZ) ≤ B
+      las 28 acciones × las 100 semillas de validación = 2 800 ≤ B
+  SMAC-SK (smac_sk_presupuesto.py): N_TRIALS × N_REPS + TOP_K × (100 − N_REPS) ≤ B
 """
 from catalogo import N_ACCIONES
 
@@ -22,9 +21,9 @@ N_CHECK = 12                  # puntos de control
 B_TRAIN = B - N_CHECK * N_EVAL  # 2760 episodios de entrenamiento
 EVAL_CADA = B_TRAIN // N_CHECK  # 230
 
-N_TAMIZ = 60
-TOP_K = 5
-B_FIJA = N_ACCIONES * N_TAMIZ + TOP_K * (100 - N_TAMIZ)   # 2720
+N_TAMIZ = 100                 # todas las semillas de validación (28 × 100 = 2 800)
+TOP_K = 0
+B_FIJA = N_ACCIONES * N_TAMIZ + TOP_K * (100 - N_TAMIZ)
 
 assert B_FIJA <= B, B_FIJA
 

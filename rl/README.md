@@ -13,7 +13,7 @@ configuración fija y a una política aleatoria, con el mismo presupuesto de cup
 |---|---|
 | `sim_fast.py` | Parche que acelera ~14× el simulador sin cambiar su lógica (elimina el sondeo cada 10 min en `_book_from_pool`). |
 | `verificar_sim_fast.py`, `validar_estadistico.py` | Comparan simulador original y parcheado (KPIs por semilla). |
-| `catalogo.py` | Catálogo de 42 acciones (6 × 7): cómo repartir los 56 cupos semanales del especialista entre 1ra consulta y control, y los 75 cupos de exámenes entre ecografía y laboratorio de matrona. La cirugía queda fija (caja negra del CRS, ~2,5 meses de demora). |
+| `catalogo.py` | Catálogo de 28 acciones (4 × 7, con control ≥ 3 × 1ra): cómo repartir los 56 cupos semanales del especialista entre 1ra consulta y control, y los 75 cupos de exámenes entre ecografía y laboratorio de matrona. La cirugía queda fija (caja negra del CRS, ~2,5 meses de demora). |
 | `entorno.py` | Entorno semanal: estado, acción, recompensa, particiones por semilla y `rollout(policy, seed)`. |
 | `evaluar.py` | Evaluación paralela de una política en un conjunto de semillas. |
 | `politicas_referencia.py` | Política aleatoria, búsqueda exhaustiva de la mejor configuración fija (con el presupuesto común) y regla SMAC-SK de la tesis (`modulo7_smac_sk.py`) como referencia de contexto. |
@@ -39,6 +39,6 @@ configuración fija y a una política aleatoria, con el mismo presupuesto de cup
 ```bash
 pip install -r requirements.txt
 python validar_estadistico.py 12        # simulador original vs rápido (~5 min, 4 núcleos)
-./corrida_humo.sh                       # corrida pequeña de punta a punta (~25 min, 4 núcleos)
+./corrida_humo.sh                       # corrida pequeña de punta a punta (~35 min, 4 núcleos)
 python politicas_referencia.py          # referencias en validación (presupuesto completo)
 ```

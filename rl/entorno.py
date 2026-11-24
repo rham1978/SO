@@ -30,7 +30,7 @@ import simpy
 
 import sim_fast
 from sim_fast import sim
-from catalogo import CATALOGO, aplicar_accion, ACCION_BASE
+from catalogo import CATALOGO, aplicar_accion, ACCION_BASE, BASE
 
 sim_fast.apply_patch()
 logging.disable(logging.WARNING)
@@ -116,7 +116,7 @@ def observar(model, prev_action: int, blocked_week: int, week: int) -> np.ndarra
             age_n += 1
         else:
             c[g] += 1
-    prev = CATALOGO[prev_action]
+    prev = CATALOGO[prev_action] if isinstance(prev_action, (int, np.integer)) else prev_action
     ang = 2 * math.pi * (week % 52) / 52
     v = [c[f"first_wait_{p}"] for p in PRIORIDADES] + [c[g] for g in GRUPOS_POST]
     v += [age_sum / age_n if age_n else 0.0, model._exam_waiters, blocked_week, math.sin(ang), math.cos(ang)]
@@ -200,7 +200,7 @@ def rollout(policy_fn, seed: int, cfg_overrides: dict | None = None,
     class _Hook0(_ModelHook):
         def __init__(self, env, rng, c=None):
             super().__init__(env, rng, c)
-            obs0 = observar(self, ACCION_BASE, 0, 0)
+            obs0 = observar(self, BASE, 0, 0)  # cupos previos = operación actual
             a0 = int(policy_fn(obs0))
             if not getattr(cfg, "_sin_acciones", False):
                 aplicar_accion(cfg, a0)

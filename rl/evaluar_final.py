@@ -33,7 +33,7 @@ from scipy import stats
 from catalogo import CATALOGO, ACCION_BASE
 from entorno import SEMILLAS_TEST, SEMILLAS_HUMO, OBS_NAMES
 from evaluar import evaluar, KPIS
-from politicas_referencia import hacer_fija, hacer_aleatoria, SMAC_SK_CFG
+from politicas_referencia import hacer_fija, hacer_aleatoria, SMAC_SK_CFG, evaluar_operacion_actual
 from comun import cargar_politica
 
 
@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     res = {
         "mejor_fija": evaluar(functools.partial(hacer_fija, a_fija), semillas),
-        "base": evaluar(functools.partial(hacer_fija, ACCION_BASE), semillas),
+        "base": evaluar_operacion_actual(semillas),
         "aleatoria": evaluar(hacer_aleatoria, semillas),
         "smac_sk_tesis (contexto)": evaluar(functools.partial(hacer_fija, ACCION_BASE), semillas,
                                       cfg_overrides=SMAC_SK_CFG, aplicar_acciones=False),
@@ -141,6 +141,15 @@ if __name__ == "__main__":
 
     json.dump({"semillas": semillas, "mejor_fija": a_fija, "tabla": tabla, "por_semilla": res,
                "interpretacion": interp}, open(os.path.join(a.out, "final.json"), "w"), indent=1)
+
+    import csv
+    with open(os.path.join(a.out, "por_semilla.csv"), "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["politica", "seed"] + list(KPIS) + ["dif_L_vs_mejor_fija"])
+        base_fija = {x["seed"]: x["L"] for x in res["mejor_fija"]}
+        for nombre, r in res.items():
+            for x in r:
+                w.writerow([nombre, x["seed"]] + [x[k] for k in KPIS] + [x["L"] - base_fija[x["seed"]]])
 
     print(f"\nSemillas: {a.semillas} ({len(semillas)}). Mejor fija = acción {a_fija} {CATALOGO[a_fija]}")
     print(f"{'política':28s} {'L':>14s} {'TTS':>8s} {'aten.':>6s} {'fin':>6s} {'ΔL vs fija (pareada)':>26s}")

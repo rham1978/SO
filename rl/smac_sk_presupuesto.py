@@ -3,8 +3,8 @@ SMAC-SK (optimizador de la tesis, ../modulo7_smac_sk.py) re-optimizado con las M
 reglas que los demás métodos:
 
   - Mismo presupuesto de cupos: 1ra consulta + control = 56, ecografía + laboratorio de
-    matrona = 75, cirugía 20. Se optimizan 2 enteros: cupos de 1ra (8–28) y de ecografía
-    (41–59), con los mismos límites del catálogo pero en pasos de 1 (399 configuraciones).
+    matrona = 75, cirugía 20. Se optimizan 2 enteros: cupos de 1ra (8–14, así control ≥ 3·1ra)
+    y de ecografía (41–59), con los mismos límites del catálogo pero en pasos de 1 (133 configuraciones).
   - Misma métrica: L (pacientes promedio en el sistema).
   - Mismas semillas: solo validación (10000–10099), con números aleatorios comunes.
   - Mismo presupuesto de simulación B (presupuesto.py):
@@ -69,7 +69,7 @@ def espacio(seed):
     from ConfigSpace import ConfigurationSpace
     from ConfigSpace.hyperparameters import UniformIntegerHyperparameter
     cs = ConfigurationSpace(seed=seed)
-    cs.add([UniformIntegerHyperparameter("cupos_1ra", 8, 28, default_value=BASE["first"]),
+    cs.add([UniformIntegerHyperparameter("cupos_1ra", 8, 14, default_value=14),
             UniformIntegerHyperparameter("cupos_eco", 41, 59, default_value=BASE["eco"])])
     return cs
 

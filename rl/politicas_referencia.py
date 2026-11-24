@@ -4,8 +4,8 @@ Políticas de referencia:
   - fija(a): usa siempre la misma configuración a.
   - mejor fija: búsqueda exhaustiva sobre el catálogo en las semillas de VALIDACIÓN,
     con el mismo presupuesto de simulación que los agentes (ver presupuesto.py):
-    tamizaje de las 42 acciones con N_TAMIZ semillas y confirmación de las TOP_K
-    mejores con las semillas restantes. Se elige por L (métrica principal).
+    las 28 acciones con las N_TAMIZ semillas (todas las de validación; si N_TAMIZ < 100,
+    confirmación de las TOP_K mejores con las restantes). Se elige por L (métrica principal).
   - SMAC-SK con el mismo presupuesto: ver smac_sk_presupuesto.py (compite con los demás).
   - SMAC-SK de la tesis (solo contexto): el incumbente de SMAC con Stochastic
     Kriging (modulo7_smac_sk.py), aplicado tal cual todo el año. Es una referencia
@@ -19,7 +19,7 @@ Escribe <out>/referencias.json
 """
 import argparse, functools, json, os, time
 import numpy as np
-from catalogo import CATALOGO, N_ACCIONES, ACCION_BASE
+from catalogo import CATALOGO, N_ACCIONES, ACCION_BASE, OPERACION_ACTUAL
 from entorno import SEMILLAS_VAL, SEMILLAS_HUMO
 from evaluar import evaluar, resumen
 import presupuesto as P
@@ -67,6 +67,12 @@ def evaluar_smac_sk(semillas, solo_cupos=False):
                    cfg_overrides=cfg, aplicar_acciones=False)
 
 
+def evaluar_operacion_actual(semillas):
+    """Operación actual del CRS (16/40/50/25): no cumple la regla 3:1, se evalúa fuera del catálogo."""
+    return evaluar(functools.partial(hacer_fija, ACCION_BASE), semillas,
+                   cfg_overrides=OPERACION_ACTUAL, aplicar_acciones=False)
+
+
 def mejor_fija(semillas, n_tamiz, top_k):
     """Búsqueda exhaustiva con presupuesto 42·n_tamiz + top_k·(len(semillas) − n_tamiz)."""
     semillas = list(semillas)
@@ -74,6 +80,10 @@ def mejor_fija(semillas, n_tamiz, top_k):
     for a in range(N_ACCIONES):
         tamiz[a] = evaluar(functools.partial(hacer_fija, a), semillas[:n_tamiz])
         print(f"fija {a:3d} {CATALOGO[a]} L {resumen(tamiz[a])[0]:.1f}", flush=True)
+    resto = semillas[n_tamiz:]
+    if not resto or top_k == 0:
+        mejor = min(tamiz, key=lambda a: resumen(tamiz[a])[0])
+        return mejor, tamiz, {mejor: tamiz[mejor]}, n_tamiz * N_ACCIONES
     top = sorted(tamiz, key=lambda a: resumen(tamiz[a])[0])[:top_k]
     final = {}
     for a in top:
@@ -100,7 +110,7 @@ if __name__ == "__main__":
     mejor, tamiz, final, gasto = mejor_fija(semillas, n_tamiz, top_k)
     res = {"catalogo": CATALOGO, "semillas": semillas, "presupuesto_mejor_fija": gasto,
            "tamizaje": tamiz, "finalistas": final, "mejor_fija": mejor}
-    res["base"] = final.get(ACCION_BASE) or evaluar(functools.partial(hacer_fija, ACCION_BASE), semillas)
+    res["base"] = evaluar_operacion_actual(semillas)
     res["aleatoria"] = evaluar(hacer_aleatoria, semillas)
     res["smac_sk"] = evaluar_smac_sk(semillas)
     res["smac_sk_solo_cupos"] = evaluar_smac_sk(semillas, solo_cupos=True)
