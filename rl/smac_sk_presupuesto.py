@@ -98,12 +98,22 @@ def optimizar(semillas, n_reps, n_trials, top_k, out, seed=0):
                   output_directory=os.path.join(out, "smac_sk_salida"), name="smac_sk_presupuesto")
     smac = m7._build_hpo_sk(sc, objetivo, cs, seed)
     t0 = time.time()
-    smac.optimize()
+    from smac.main.exceptions import ConfigurationSpaceExhaustedException
+    try:
+        smac.optimize()
+    except ConfigurationSpaceExhaustedException:
+        # Espacio pequeño (133 configuraciones): SMAC deja de proponer nuevas antes de agotar
+        # N_TRIALS. El presupuesto que sobra se usa en confirmar más finalistas, sin pasar de B.
+        print(f"  SMAC-SK agotó el espacio tras {len(historia)} configuraciones", flush=True)
+    restante = P.B - len(historia) * len(busq)
+    if resto:
+        top_k = max(top_k, min(len(historia), restante // len(resto)))
     # Confirmación con el resto de las semillas de validación (igual que la mejor fija)
     top = sorted(historia, key=lambda k: resumen(historia[k])[0])[:top_k]
     final = {k: historia[k] + evaluar_cupos(*k, resto) for k in top}
     mejor = min(top, key=lambda k: resumen(final[k])[0])
     gasto = len(historia) * len(busq) + len(top) * len(resto)
+    assert gasto <= P.B or len(semillas) < 100, gasto
     res = {"mejor": {"cupos_1ra": mejor[0], "cupos_eco": mejor[1], "cfg": cfg_cupos(*mejor)},
            "L_val": resumen(final[mejor]), "presupuesto_usado": gasto, "n_configs": len(historia),
            "semillas_busqueda": busq, "semillas_confirmacion": resto,
