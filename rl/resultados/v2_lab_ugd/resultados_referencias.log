@@ -1,0 +1,50 @@
+fija   0 {'first': 8, 'control': 48, 'eco': 32, 'lab': 72} TTS 308.2 ± 1.5
+fija   1 {'first': 8, 'control': 48, 'eco': 38, 'lab': 66} TTS 287.4 ± 1.6
+fija   2 {'first': 8, 'control': 48, 'eco': 44, 'lab': 60} TTS 282.6 ± 1.6
+fija   3 {'first': 8, 'control': 48, 'eco': 50, 'lab': 54} TTS 273.6 ± 2.2
+fija   4 {'first': 8, 'control': 48, 'eco': 56, 'lab': 48} TTS 270.1 ± 2.9
+fija   5 {'first': 8, 'control': 48, 'eco': 62, 'lab': 42} TTS 272.2 ± 1.7
+fija   6 {'first': 8, 'control': 48, 'eco': 68, 'lab': 36} TTS 276.4 ± 2.6
+fija   7 {'first': 12, 'control': 44, 'eco': 32, 'lab': 72} TTS 297.9 ± 1.9
+fija   8 {'first': 12, 'control': 44, 'eco': 38, 'lab': 66} TTS 276.8 ± 1.4
+fija   9 {'first': 12, 'control': 44, 'eco': 44, 'lab': 60} TTS 272.2 ± 1.9
+fija  10 {'first': 12, 'control': 44, 'eco': 50, 'lab': 54} TTS 259.8 ± 2.3
+fija  11 {'first': 12, 'control': 44, 'eco': 56, 'lab': 48} TTS 253.8 ± 2.4
+fija  12 {'first': 12, 'control': 44, 'eco': 62, 'lab': 42} TTS 262.6 ± 2.3
+fija  13 {'first': 12, 'control': 44, 'eco': 68, 'lab': 36} TTS 265.8 ± 2.3
+fija  14 {'first': 16, 'control': 40, 'eco': 32, 'lab': 72} TTS 289.5 ± 2.0
+fija  15 {'first': 16, 'control': 40, 'eco': 38, 'lab': 66} TTS 270.4 ± 1.7
+fija  16 {'first': 16, 'control': 40, 'eco': 44, 'lab': 60} TTS 253.6 ± 2.8
+fija  17 {'first': 16, 'control': 40, 'eco': 50, 'lab': 54} TTS 248.9 ± 2.6
+fija  18 {'first': 16, 'control': 40, 'eco': 56, 'lab': 48} TTS 243.0 ± 3.0
+fija  19 {'first': 16, 'control': 40, 'eco': 62, 'lab': 42} TTS 245.7 ± 2.7
+fija  20 {'first': 16, 'control': 40, 'eco': 68, 'lab': 36} TTS 256.2 ± 2.6
+fija  21 {'first': 20, 'control': 36, 'eco': 32, 'lab': 72} TTS 284.0 ± 2.2
+fija  22 {'first': 20, 'control': 36, 'eco': 38, 'lab': 66} TTS 263.5 ± 2.2
+fija  23 {'first': 20, 'control': 36, 'eco': 44, 'lab': 60} TTS 240.0 ± 3.3
+fija  24 {'first': 20, 'control': 36, 'eco': 50, 'lab': 54} TTS 236.1 ± 1.9
+fija  25 {'first': 20, 'control': 36, 'eco': 56, 'lab': 48} TTS 232.1 ± 2.8
+fija  26 {'first': 20, 'control': 36, 'eco': 62, 'lab': 42} TTS 236.0 ± 3.1
+fija  27 {'first': 20, 'control': 36, 'eco': 68, 'lab': 36} TTS 241.4 ± 2.8
+fija  28 {'first': 24, 'control': 32, 'eco': 32, 'lab': 72} TTS 280.7 ± 1.5
+fija  29 {'first': 24, 'control': 32, 'eco': 38, 'lab': 66} TTS 252.8 ± 1.9
+fija  30 {'first': 24, 'control': 32, 'eco': 44, 'lab': 60} TTS 235.3 ± 1.5
+fija  31 {'first': 24, 'control': 32, 'eco': 50, 'lab': 54} TTS 242.5 ± 3.1
+fija  32 {'first': 24, 'control': 32, 'eco': 56, 'lab': 48} TTS 242.0 ± 2.1
+fija  33 {'first': 24, 'control': 32, 'eco': 62, 'lab': 42} TTS 242.7 ± 2.2
+fija  34 {'first': 24, 'control': 32, 'eco': 68, 'lab': 36} TTS 242.8 ± 2.7
+fija  35 {'first': 28, 'control': 28, 'eco': 32, 'lab': 72} TTS 274.7 ± 2.9
+fija  36 {'first': 28, 'control': 28, 'eco': 38, 'lab': 66} TTS 244.9 ± 1.6
+fija  37 {'first': 28, 'control': 28, 'eco': 44, 'lab': 60} TTS 240.1 ± 2.9
+fija  38 {'first': 28, 'control': 28, 'eco': 50, 'lab': 54} TTS 243.6 ± 2.9
+fija  39 {'first': 28, 'control': 28, 'eco': 56, 'lab': 48} TTS 247.8 ± 3.1
+fija  40 {'first': 28, 'control': 28, 'eco': 62, 'lab': 42} TTS 242.6 ± 4.2
+fija  41 {'first': 28, 'control': 28, 'eco': 68, 'lab': 36} TTS 242.1 ± 3.3
+finalista 25 TTS 233.99 ± 1.27
+finalista 30 TTS 236.46 ± 1.17
+finalista 26 TTS 235.52 ± 1.55
+finalista 24 TTS 235.97 ± 1.19
+finalista 23 TTS 240.12 ± 1.31
+finalista 17 TTS 247.67 ± 1.14
+aleatoria TTS 239.98 ± 1.27
+mejor fija: 25 {'first': 20, 'control': 36, 'eco': 56, 'lab': 48} base: 17 (862s)
