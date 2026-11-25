@@ -30,7 +30,7 @@ import simpy
 
 import sim_fast
 from sim_fast import sim
-from catalogo import CATALOGO, aplicar_accion, ACCION_BASE
+from catalogo import CATALOGO, aplicar_accion, ACCION_BASE, BASE
 
 sim_fast.apply_patch()
 logging.disable(logging.WARNING)
@@ -43,6 +43,9 @@ N_WEEKS = 52
 SEMILLAS_TRAIN = range(0, 10_000)
 SEMILLAS_VAL = range(10_000, 10_100)
 SEMILLAS_TEST = range(500_000, 500_030)  # mismo bloque de re-evaluación de incumbentes de benchmark_riguroso.py (SMAC)
+# Semillas de humo: solo para probar el pipeline de punta a punta (corrida pequeña).
+# Disjuntas de las tres particiones, para no gastar la prueba antes de tiempo.
+SEMILLAS_HUMO = range(900_000, 900_100)
 
 # ── Agrupación de estados del paciente para la observación ──────────────────
 def _grupo(state: str) -> str | None:
@@ -113,7 +116,7 @@ def observar(model, prev_action: int, blocked_week: int, week: int) -> np.ndarra
             age_n += 1
         else:
             c[g] += 1
-    prev = CATALOGO[prev_action]
+    prev = CATALOGO[prev_action] if isinstance(prev_action, (int, np.integer)) else prev_action
     ang = 2 * math.pi * (week % 52) / 52
     v = [c[f"first_wait_{p}"] for p in PRIORIDADES] + [c[g] for g in GRUPOS_POST]
     v += [age_sum / age_n if age_n else 0.0, model._exam_waiters, blocked_week, math.sin(ang), math.cos(ang)]
@@ -151,7 +154,8 @@ class _DecisionEnv(simpy.Environment):
             obs = observar(model, prev_a, blocked - blocked_prev, w)
             blocked_prev = blocked
             a = int(self._policy(obs))
-            aplicar_accion(cfg, a)
+            if not getattr(cfg, "_sin_acciones", False):
+                aplicar_accion(cfg, a)
             traj["obs"].append(obs)
             traj["actions"].append(a)
             prev_a = a
@@ -170,9 +174,16 @@ def config_base(**overrides) -> "sim.SimConfig":
     return dataclasses.replace(cfg, **overrides)
 
 
-def rollout(policy_fn, seed: int, cfg_overrides: dict | None = None) -> dict:
-    """Simula un año con la política dada. Devuelve trayectoria y KPIs finales."""
+def rollout(policy_fn, seed: int, cfg_overrides: dict | None = None,
+            aplicar_acciones: bool = True) -> dict:
+    """Simula un año con la política dada. Devuelve trayectoria y KPIs finales.
+
+    aplicar_acciones=False deja la configuración tal como viene en cfg_overrides
+    durante todo el año (reglas externas al catálogo, p. ej. el incumbente SMAC-SK).
+    """
     cfg = config_base(**(cfg_overrides or {}))
+    if not aplicar_acciones:
+        cfg._sin_acciones = True
     traj = {"obs": [], "actions": [], "rewards": [], "seed": seed}
 
     # Decisión de la semana 0 (t = 0): observación inicial "vacía" del sistema
@@ -189,9 +200,10 @@ def rollout(policy_fn, seed: int, cfg_overrides: dict | None = None) -> dict:
     class _Hook0(_ModelHook):
         def __init__(self, env, rng, c=None):
             super().__init__(env, rng, c)
-            obs0 = observar(self, ACCION_BASE, 0, 0)
+            obs0 = observar(self, BASE, 0, 0)  # cupos previos = operación actual
             a0 = int(policy_fn(obs0))
-            aplicar_accion(cfg, a0)
+            if not getattr(cfg, "_sin_acciones", False):
+                aplicar_accion(cfg, a0)
             traj["obs"].append(obs0)
             traj["actions"].append(a0)
 
@@ -203,6 +215,13 @@ def rollout(policy_fn, seed: int, cfg_overrides: dict | None = None) -> dict:
         sim.simpy.Environment = orig_env
         sim.ClinicModelAdjusted = orig_model
     traj["kpis"] = {k: v for k, v in kpis.items() if isinstance(v, (int, float)) and not isinstance(v, bool)}
+    # Métrica principal: L = pacientes promedio en el sistema (pacientes·día / días),
+    # que por la ley de Little es proporcional al tiempo medio en el sistema.
+    dias = cfg.weeks_to_simulate * 7
+    traj["kpis"]["L"] = -1000.0 * float(np.sum(traj["rewards"])) / dias
+    # Fin del horizonte: pacientes que siguen dentro al cierre del año (detecta
+    # políticas que "empujan" trabajo más allá del horizonte).
+    traj["kpis"]["en_sistema_final"] = float(_CURRENT_MODEL.total_in_system_now())
     traj["obs"] = np.stack(traj["obs"])
     traj["actions"] = np.asarray(traj["actions"], dtype=np.int64)
     traj["rewards"] = np.asarray(traj["rewards"], dtype=np.float32)

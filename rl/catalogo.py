@@ -20,6 +20,11 @@ base fija (surg_throughput_per_week = 20).
 Acción = (d, e): se mueven d cupos de control a 1ra consulta y e cupos de
 laboratorio a ecografía. Todas las acciones gastan exactamente el mismo
 presupuesto de cupos que la operación base.
+
+Regla clínica (Raúl, 24/11/2026): por cada cupo de 1ra consulta debe haber AL MENOS
+3 cupos de control (control ≥ 3·1ra). Con 56 cupos de especialista, la 1ra queda
+entre 8 y 14 (pasos de 2) → 4 × 7 = 28 acciones. La operación actual (16/40) NO
+cumple la regla, así que se evalúa como referencia externa (OPERACION_ACTUAL).
 """
 import itertools
 
@@ -28,7 +33,8 @@ CUPOS_ESPECIALISTA = BASE["first"] + BASE["control"]  # 56
 CUPOS_EXAMENES = BASE["eco"] + BASE["lab"]            # 75
 SURG_FIJO = 20
 
-DESPLAZ_ESPECIALISTA = (-8, -4, 0, 4, 8, 12)          # 1ra consulta 8..28, control 48..28
+DESPLAZ_ESPECIALISTA = (-8, -6, -4, -2)              # 1ra consulta 8..14, control 48..42
+RATIO_MIN_CONTROL = 3                                 # control ≥ 3 × 1ra
 DESPLAZ_EXAMENES = (-9, -6, -3, 0, 3, 6, 9)           # ecografía 41..59, laboratorio 34..16
 PALANCAS = ("first", "control", "eco", "lab")
 
@@ -38,11 +44,17 @@ def _construir():
     for d, e in itertools.product(DESPLAZ_ESPECIALISTA, DESPLAZ_EXAMENES):
         cat.append({"first": BASE["first"] + d, "control": BASE["control"] - d,
                     "eco": BASE["eco"] + e, "lab": BASE["lab"] - e})
+    assert all(c["control"] >= RATIO_MIN_CONTROL * c["first"] for c in cat)
     return cat
 
 
 CATALOGO = _construir()
-ACCION_BASE = CATALOGO.index(dict(BASE))
+# Acción factible más cercana a la operación actual (14/42/50/25); solo como acción "neutra"
+ACCION_BASE = CATALOGO.index({"first": 14, "control": 42, "eco": BASE["eco"], "lab": BASE["lab"]})
+# Operación actual del CRS (16/40/50/25, cirugía 20) como configuración fija del simulador
+OPERACION_ACTUAL = {"fixed_weekly_capacity": BASE["first"], "fixed_post_control_capacity": BASE["control"],
+                    "ugd_us_per_week": BASE["eco"] // 2, "mat_us_per_week": BASE["eco"] - BASE["eco"] // 2,
+                    "mat_lab_per_week": BASE["lab"], "surg_throughput_per_week": SURG_FIJO}
 N_ACCIONES = len(CATALOGO)
 
 

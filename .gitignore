@@ -25,3 +25,8 @@ analisis_out/
 *.log
 comparacion_manual/
 comparacion*/
+
+# RL: salidas pesadas o regenerables
+rl/resultados/**/smac_sk_salida/
+rl/resultados/**/*.pt
+rl/resultados/normalizador_*.npz
