@@ -56,7 +56,9 @@ def normalizador_compartido(n_episodios=N_NORM, ex=None, carpeta="resultados"):
         return Normalizador(z["media"], z["desv"])
     norm = Normalizador.ajustar(n_episodios, ex)
     os.makedirs(carpeta, exist_ok=True)
-    np.savez(path, media=norm.media, desv=norm.desv)
+    tmp = f"{path}.tmp{os.getpid()}.npz"          # escritura atómica
+    np.savez(tmp, media=norm.media, desv=norm.desv)
+    os.replace(tmp, path)
     return norm
 
 
@@ -129,19 +131,23 @@ class PuntoControl:
               flush=True)
         if L < self.mejor:
             self.mejor = L
-            torch.save({"tipo": self.tipo, "red": sd, "norm_media": self.norm.media,
-                        "norm_desv": self.norm.desv, "episodios": vistos, "L_val": L},
-                       os.path.join(self.out, "mejor.pt"))
+            # Solo tensores, textos y números: se puede cargar con weights_only=True
+            path = os.path.join(self.out, "mejor.pt")
+            torch.save({"tipo": self.tipo, "red": sd, "norm_media": torch.as_tensor(self.norm.media),
+                        "norm_desv": torch.as_tensor(self.norm.desv), "episodios": int(vistos), "L_val": float(L)},
+                       path + ".tmp")
+            os.replace(path + ".tmp", path)
 
     def guardar(self, gasto):
-        json.dump({"curva": self.curva, "config": self.config, "presupuesto_usado": gasto},
-                  open(os.path.join(self.out, "curva.json"), "w"), indent=1)
+        from presupuesto import guardar_json
+        guardar_json({"curva": self.curva, "config": self.config, "presupuesto_usado": gasto},
+                     os.path.join(self.out, "curva.json"), indent=1)
 
 
 def cargar_politica(path):
     """Devuelve (tipo, red, norm) desde un mejor.pt."""
-    ck = torch.load(path, weights_only=False)
+    ck = torch.load(path, weights_only=True)   # no ejecuta código del archivo
     red = mlp(N_ACCIONES)
     red.load_state_dict(ck["red"])
     red.eval()
-    return ck["tipo"], red, Normalizador(ck["norm_media"], ck["norm_desv"])
+    return ck["tipo"], red, Normalizador(np.asarray(ck["norm_media"]), np.asarray(ck["norm_desv"]))

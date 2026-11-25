@@ -93,6 +93,7 @@ if __name__ == "__main__":
     p.add_argument("--refs", required=True)
     p.add_argument("--agentes", default="resultados/*_s*/mejor.pt")
     p.add_argument("--n_interp", type=int, default=5)
+    p.add_argument("--smac", default=None, help="smac_sk.json (por defecto, junto a --refs)")
     p.add_argument("--out", required=True)
     a = p.parse_args()
     semillas = list(SEMILLAS_TEST) if a.semillas == "prueba" else list(SEMILLAS_HUMO[50:60])
@@ -107,7 +108,9 @@ if __name__ == "__main__":
         "smac_sk_tesis (contexto)": evaluar(functools.partial(hacer_fija, ACCION_BASE), semillas,
                                       cfg_overrides=SMAC_SK_CFG, aplicar_acciones=False),
     }
-    smac_path = os.path.join(os.path.dirname(a.refs), "smac_sk.json")
+    smac_path = a.smac or os.path.join(os.path.dirname(a.refs), "smac_sk.json")
+    if a.smac and not os.path.exists(a.smac):
+        raise SystemExit(f"No existe {a.smac}")
     if os.path.exists(smac_path):  # SMAC-SK re-optimizado con el mismo presupuesto y semillas
         from smac_sk_presupuesto import cfg_cupos
         m = json.load(open(smac_path))["mejor"]
@@ -139,17 +142,20 @@ if __name__ == "__main__":
     for path in agentes:
         interp[os.path.basename(os.path.dirname(path))] = interpretar(path, semillas[:a.n_interp], a.out)
 
-    json.dump({"semillas": semillas, "mejor_fija": a_fija, "tabla": tabla, "por_semilla": res,
-               "interpretacion": interp}, open(os.path.join(a.out, "final.json"), "w"), indent=1)
 
     import csv
-    with open(os.path.join(a.out, "por_semilla.csv"), "w", newline="") as f:
+    with open(os.path.join(a.out, "por_semilla.csv.tmp"), "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["politica", "seed"] + list(KPIS) + ["dif_L_vs_mejor_fija"])
         base_fija = {x["seed"]: x["L"] for x in res["mejor_fija"]}
         for nombre, r in res.items():
             for x in r:
                 w.writerow([nombre, x["seed"]] + [x[k] for k in KPIS] + [x["L"] - base_fija[x["seed"]]])
+    os.replace(os.path.join(a.out, "por_semilla.csv.tmp"), os.path.join(a.out, "por_semilla.csv"))
+
+    from presupuesto import guardar_json
+    guardar_json({"semillas": semillas, "mejor_fija": a_fija, "agentes": agentes, "tabla": tabla,
+                  "por_semilla": res, "interpretacion": interp}, os.path.join(a.out, "final.json"), indent=1)
 
     print(f"\nSemillas: {a.semillas} ({len(semillas)}). Mejor fija = acción {a_fija} {CATALOGO[a_fija]}")
     print(f"{'política':28s} {'L':>14s} {'TTS':>8s} {'aten.':>6s} {'fin':>6s} {'ΔL vs fija (pareada)':>26s}")

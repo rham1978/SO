@@ -123,7 +123,7 @@ def optimizar(semillas, n_reps, n_trials, top_k, out, seed=0):
     print(f"SMAC-SK mejor: 1ra {mejor[0]} / control {CUPOS_ESPECIALISTA - mejor[0]} / eco {mejor[1]} / "
           f"lab {CUPOS_EXAMENES - mejor[1]}  L val {res['L_val'][0]:.1f} ± {res['L_val'][1]:.1f}  "
           f"(presupuesto {gasto} años simulados, {res['seg']} s)", flush=True)
-    json.dump(res, open(os.path.join(out, "smac_sk.json"), "w"), indent=1, default=str)
+    P.guardar_json(res, os.path.join(out, "smac_sk.json"), indent=1, default=str)
     return res
 
 
