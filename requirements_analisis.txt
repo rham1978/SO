@@ -1,0 +1,15 @@
+# Dependencias verificadas para análisis de salidas + re-corridas M11/SMAC-RF
+# (instaladas y probadas en este entorno)
+numpy
+pandas
+matplotlib
+scipy
+simpy
+
+# SMAC y su surrogado Random Forest (facade HPO).
+# IMPORTANTE: SMAC 2.4 + RandomForest requiere scikit-learn 1.6.x.
+#   - scikit-learn >= 1.7 elimina sklearn.tree._tree.DTYPE  -> ImportError
+#   - scikit-learn <  1.6 no tiene sklearn.utils.validation.validate_data -> ImportError
+smac==2.4.0
+ConfigSpace>=1.2
+scikit-learn==1.6.1
