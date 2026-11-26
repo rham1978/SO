@@ -165,6 +165,14 @@ class PuntoControl:
         print(f"[{vistos:5d}] L val {L:.1f}  TTS val {self.curva[-1]['tts_val']:.1f}  "
               f"retorno train {retorno_train:.1f}  acciones distintas {self.curva[-1]['acciones_distintas']}",
               flush=True)
+        # Cada punto de control queda guardado (≈ 30 KB) para re-evaluar los mejores en las
+        # 100 semillas de validación al final (seleccion_val.py), sin volver a entrenar.
+        os.makedirs(os.path.join(self.out, "puntos"), exist_ok=True)
+        pc_path = os.path.join(self.out, "puntos", f"pc_{int(vistos):06d}.pt")
+        torch.save({"tipo": self.tipo, "red": sd, "norm_media": torch.as_tensor(self.norm.media),
+                    "norm_desv": torch.as_tensor(self.norm.desv), "episodios": int(vistos), "L_val": float(L)},
+                   pc_path + ".tmp")
+        os.replace(pc_path + ".tmp", pc_path)
         if L < self.mejor:
             self.mejor = L
             # Solo tensores, textos y números: se puede cargar con weights_only=True
