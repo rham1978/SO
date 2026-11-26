@@ -30,3 +30,6 @@ comparacion*/
 rl/resultados/**/smac_sk_salida/
 rl/resultados/**/*.pt
 rl/resultados/normalizador_*.npz
+
+# datos reales del CRS: nunca al repositorio
+rl/datos_crs/
