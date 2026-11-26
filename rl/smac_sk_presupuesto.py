@@ -6,7 +6,7 @@ reglas que los demás métodos:
     matrona = 75, cirugía 20. Se optimizan 2 enteros: cupos de 1ra (8–14, así control ≥ 3·1ra)
     y de ecografía (41–59), con los mismos límites del catálogo pero en pasos de 1 (133 configuraciones).
   - Misma métrica: L (pacientes promedio en el sistema).
-  - Mismas semillas: solo validación (10000–10099), con números aleatorios comunes.
+  - Mismas semillas: solo validación (10000–10099) (no son llegadas comunes: el DES usa un solo generador).
   - Mismo presupuesto de simulación B (presupuesto.py):
         búsqueda   N_TRIALS configuraciones × N_REPS semillas de validación (las mismas para todas)
         confirmación las TOP_K mejores × las 100 − N_REPS semillas restantes
@@ -123,7 +123,7 @@ def optimizar(semillas, n_reps, n_trials, top_k, out, seed=0):
     print(f"SMAC-SK mejor: 1ra {mejor[0]} / control {CUPOS_ESPECIALISTA - mejor[0]} / eco {mejor[1]} / "
           f"lab {CUPOS_EXAMENES - mejor[1]}  L val {res['L_val'][0]:.1f} ± {res['L_val'][1]:.1f}  "
           f"(presupuesto {gasto} años simulados, {res['seg']} s)", flush=True)
-    json.dump(res, open(os.path.join(out, "smac_sk.json"), "w"), indent=1, default=str)
+    P.guardar_json(res, os.path.join(out, "smac_sk.json"), indent=1, default=str)
     return res
 
 

@@ -50,16 +50,32 @@ if __name__ == "__main__":
     p.add_argument("--copia", default=None, help="carpeta persistente para replicar resultados")
     p.add_argument("--sin_smac", action="store_true", help="omite SMAC-SK (p. ej. en Windows sin SMAC3)")
     p.add_argument("--inits", default="0,1,2,3,4", help="inicializaciones a entrenar, p. ej. 3,4")
+    p.add_argument("--smac_json", default=None, help="smac_sk.json de otra corrida (p. ej. la de la nube)")
     a = p.parse_args()
     out, COPIA = a.out, a.copia
     os.makedirs(out, exist_ok=True)
+    # Candado: impide dos corridas simultáneas sobre la misma carpeta
+    candado = os.path.join(out, ".candado")
+    if os.path.exists(candado):
+        pid = int(open(candado).read() or 0)
+        try:
+            os.kill(pid, 0)
+            raise SystemExit(f"Ya hay una corrida (pid {pid}) usando {out}")
+        except (ProcessLookupError, PermissionError, OSError):
+            pass  # candado huérfano de una corrida interrumpida
+    open(candado, "w").write(str(os.getpid()))
     log = os.path.join(out, "corrida.log")
     py = sys.executable
 
     if not os.path.exists(f"{out}/referencias.json"):
         run([py, "politicas_referencia.py", "--out", out], log)
-    if not a.sin_smac and not os.path.exists(f"{out}/smac_sk.json"):
+    if a.smac_json:
+        import shutil
+        shutil.copy(a.smac_json, f"{out}/smac_sk.json")
+    elif not a.sin_smac and not os.path.exists(f"{out}/smac_sk.json"):
         run([py, "smac_sk_presupuesto.py", "--out", out], log)
+    if not os.path.exists(f"{out}/smac_sk.json"):
+        print("aviso: sin smac_sk.json; la tabla final no tendrá SMAC-SK con el mismo presupuesto", flush=True)
 
     elegidos = {}
     for m, grid in HP.items():
@@ -73,15 +89,27 @@ if __name__ == "__main__":
             mejores.append((min(x["L_val"] for x in c), i))
         elegidos[m] = HP[m][min(mejores)[1]]
         print(m, "hiperparámetros elegidos:", elegidos[m], "(L val por config:", mejores, ")", flush=True)
-    json.dump(elegidos, open(f"{out}/hp_elegidos.json", "w"), indent=1)
+    from presupuesto import guardar_json
+    guardar_json(elegidos, f"{out}/hp_elegidos.json", indent=1)
 
-    for s in [int(x) for x in a.inits.split(",")]:
+    inits = [int(x) for x in a.inits.split(",")]
+    for s in inits:
         for m in HP:
             d = f"{out}/{m}_s{s}"
             if not os.path.exists(f"{d}/curva.json"):
                 run([py, f"{m}.py", "--semilla", str(s), "--out", d] + flags(elegidos[m]), log)
 
-    if not os.path.exists(f"{out}/prueba/final.json"):
+    # Evaluación final: se repite si falta algún archivo o cambió el conjunto de agentes
+    import glob
+    agentes = sorted(glob.glob(f"{out}/*_s*/mejor.pt"))
+    esperados = {f"{out}/{m}_s{s}/mejor.pt" for m in HP for s in inits}
+    faltan = esperados - set(agentes)
+    if faltan:
+        raise SystemExit(f"Faltan agentes entrenados: {sorted(faltan)}")
+    fj, fc = f"{out}/prueba/final.json", f"{out}/prueba/por_semilla.csv"
+    hecho = os.path.exists(fj) and os.path.exists(fc) and json.load(open(fj)).get("agentes") == agentes
+    if not hecho:
         run([py, "evaluar_final.py", "--semillas", "prueba", "--refs", f"{out}/referencias.json",
-             "--agentes", f"{out}/*_s[0-9]/mejor.pt", "--out", f"{out}/prueba"], log)
+             "--agentes", f"{out}/*_s*/mejor.pt", "--out", f"{out}/prueba"], log)
+    os.remove(candado)
     print("listo", flush=True)

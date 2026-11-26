@@ -35,3 +35,12 @@ def nucleos() -> int:
     """Procesos en paralelo: variable de entorno RL_NUCLEOS o todos los núcleos."""
     import os
     return int(os.environ.get("RL_NUCLEOS", 0)) or os.cpu_count()
+
+
+def guardar_json(obj, path, **kw):
+    """Escritura atómica: si el proceso se corta, el archivo queda completo o no existe."""
+    import json, os
+    tmp = f"{path}.tmp{os.getpid()}"
+    with open(tmp, "w") as f:
+        json.dump(obj, f, **kw)
+    os.replace(tmp, path)

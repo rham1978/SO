@@ -5,7 +5,7 @@ Idea: un buen indicador debe moverse en la dirección correcta ante cambios cuyo
 efecto conocemos de antemano (más capacidad ⇒ mejor, más demanda ⇒ peor), y
 hacerlo con buena relación señal/ruido. Se corre el DES tal como está (solo se
 observan los pacientes, no se cambia su lógica) en escenarios controlados con
-números aleatorios comunes y se compara cada escenario con la base, pareado.
+la misma semilla y se compara cada escenario con la base, pareado.
 
 Indicadores candidatos:
   TTS_comp   tts_full_days_mean de la tesis: tiempo medio de quienes terminan su ruta en el año

@@ -16,7 +16,9 @@ if __name__ == "__main__":
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 100
     margen = float(sys.argv[2]) if len(sys.argv) > 2 else 0.02
     jobs = [(s, f) for s in range(n) for f in (False, True)]
-    with ProcessPoolExecutor(__import__("presupuesto").nucleos()) as ex:
+    # max_tasks_per_child=1: cada simulación en un proceso nuevo, para que el parche de una
+    # corrida acelerada no quede activo en una corrida "original" posterior del mismo proceso.
+    with ProcessPoolExecutor(__import__("presupuesto").nucleos(), max_tasks_per_child=1) as ex:
         res = list(ex.map(job, jobs, chunksize=1))
     out = {"n": n, "margen": margen, "kpis": {}, "crudo": res}
     for fast in (False, True):
@@ -34,3 +36,5 @@ if __name__ == "__main__":
                           "sd_original": float(np.std(list(a.values()), ddof=1))}
         print(f"{k:22s} {m:9.1f} {d.mean():+8.2f} [{100*lo/m:+5.1f}%, {100*hi/m:+5.1f}%]  {'sí' if eq else 'NO':>10s}")
     json.dump(out, open("validacion_equivalencia.json", "w"), indent=1)
+    if not all(v["equivalente_tost"] for v in out["kpis"].values()):
+        sys.exit(1)

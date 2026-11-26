@@ -1,7 +1,7 @@
 """
 Double DQN sobre el mismo entorno, red y presupuesto.
 
-  - Q(s, ·): MLP 2×64 → 42 valores. Pérdida de Huber.
+  - Q(s, ·): MLP 2×64 → 28 valores. Pérdida de Huber.
   - Objetivo Double DQN: y = r + γ·Q_obj(s', argmax_a Q(s', a)); terminal en la semana 52.
   - Buffer de repetición de 100 000 transiciones; ε lineal de 1 a 0,05 en el primer
     `frac_eps` del presupuesto de episodios.

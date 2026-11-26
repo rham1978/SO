@@ -26,9 +26,13 @@ RETRY_MIN = 10
 
 
 def _next_refill_time(now: float, cfg) -> float:
-    """Primer instante de relleno de pools estrictamente posterior a `now`."""
+    """Primer instante de relleno de pools igual o posterior a `now`.
+
+    Incluye `now` si cae justo en un relleno: el evento de relleno de ese mismo instante
+    puede no haberse procesado todavía, y el original lo encontraría en su reintento
+    de +10 min. En ese caso el salto es de un solo reintento, igual que el original."""
     offset = cfg.work_start_h * 60
-    k = math.floor((now - offset) / WEEK_MIN) + 1
+    k = math.ceil((now - offset) / WEEK_MIN)
     return k * WEEK_MIN + offset
 
 

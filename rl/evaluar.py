@@ -1,4 +1,4 @@
-"""Evaluación paralela de políticas en un conjunto de semillas (mismas llegadas para todas: CRN)."""
+"""Evaluación paralela de políticas en un conjunto de semillas (mismas semillas para todas; el DES usa un solo generador, así que no son llegadas comunes)."""
 from __future__ import annotations
 import os
 from concurrent.futures import ProcessPoolExecutor

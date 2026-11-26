@@ -119,4 +119,4 @@ if __name__ == "__main__":
               f"TTS {resumen(res[k], 'tts_full_days_mean')[0]:.1f}   "
               f"atenciones {resumen(res[k], 'total_atenciones')[0]:.0f}")
     print(f"mejor fija: {mejor} {CATALOGO[mejor]}  (presupuesto {gasto} años simulados, {time.time()-t:.0f}s)")
-    json.dump(res, open(os.path.join(out, "referencias.json"), "w"), indent=1, default=str)
+    P.guardar_json(res, os.path.join(out, "referencias.json"), indent=1, default=str)

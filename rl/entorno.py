@@ -84,6 +84,7 @@ class _ModelHook(sim.ClinicModelAdjusted):
     def __init__(self, env, rng, cfg=None):
         global _CURRENT_MODEL
         self._pinfo = {}
+        self._post_ruta = {}   # ruta del backlog post inicial (el DES no les asigna estado al sembrarlos)
         self._exam_waiters = 0
         super().__init__(env, rng, cfg)
         _CURRENT_MODEL = self
@@ -91,6 +92,10 @@ class _ModelHook(sim.ClinicModelAdjusted):
     def _register_patient(self, p):
         self._pinfo[p.pid] = (str(getattr(p.priority, "value", p.priority)), float(p.enqueued_at))
         return super()._register_patient(p)
+
+    def _start_post_backlog(self, patient, route):
+        self._post_ruta[patient.pid] = route if route in ("control", "preq", "quir") else "control"
+        return super()._start_post_backlog(patient, route)
 
     def _book_from_pool(self, *a, **kw):
         self._exam_waiters += 1
@@ -116,6 +121,11 @@ def observar(model, prev_action: int, blocked_week: int, week: int) -> np.ndarra
             age_n += 1
         else:
             c[g] += 1
+    # Backlog post inicial: está en post_in_process pero sin estado hasta que reserva exámenes.
+    # Se cuenta según su ruta (control, preq, quir) para que el estado vea toda la carga.
+    for pid in model.post_in_process:
+        if pid not in model.patient_state:
+            c[model._post_ruta.get(pid, "post_other")] += 1
     prev = CATALOGO[prev_action] if isinstance(prev_action, (int, np.integer)) else prev_action
     ang = 2 * math.pi * (week % 52) / 52
     v = [c[f"first_wait_{p}"] for p in PRIORIDADES] + [c[g] for g in GRUPOS_POST]

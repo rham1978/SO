@@ -17,3 +17,4 @@ for sd in seeds:
     print(f"seed {sd}: original {ta:.1f}s, rapido {tb:.1f}s, x{ta/tb:.1f}, KPIs distintos: {len(diff)}/{len(a)}", diff[:8])
     ok &= not diff
 print("IDENTICO" if ok else "DIFERENCIAS")
+sys.exit(0 if ok else 1)
