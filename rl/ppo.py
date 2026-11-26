@@ -22,7 +22,7 @@ import torch.nn as nn
 
 from catalogo import N_ACCIONES
 import presupuesto as P
-from comun import ESCALA_R, N_NORM, normalizador_compartido, PuntoControl, mlp, rollout_red, semillas_entrenamiento
+from comun import ESCALA_R, N_NORM, normalizador_compartido, PuntoControl, mlp, rollout_red, semillas_entrenamiento, guardar_estado, cargar_estado
 
 
 def gae(r, v, gamma, lam):
@@ -51,9 +51,16 @@ def entrenar(episodios=P.B_TRAIN, lote=8, lr=3e-4, clip=0.2, gamma=0.99, lam=0.9
         norm = normalizador_compartido(n_norm, ex)
         actor, critico = mlp(N_ACCIONES), mlp(1)
         opt = torch.optim.Adam(list(actor.parameters()) + list(critico.parameters()), lr=lr)
-        sem_train = semillas_entrenamiento(semilla)
+        sem_train = semillas_entrenamiento(semilla, episodios)
         pc = PuntoControl(out, "pi", norm, n_eval, config)
         vistos, prox_eval = 0, eval_cada
+        est = cargar_estado(out)
+        if est:
+            actor.load_state_dict(est["actor"]); critico.load_state_dict(est["critico"])
+            opt.load_state_dict(est["opt"]); pc.restaurar(est["pc"])
+            vistos, prox_eval = est["vistos"], est["prox_eval"]
+            torch.set_rng_state(est["torch_rng"]); np.random.set_state(est["np_rng"])
+            rng.bit_generator.state = est["rng"]
         while vistos < episodios:
             sd = {k: v.clone() for k, v in actor.state_dict().items()}
             seeds = sem_train[vistos:vistos + min(lote, episodios - vistos)]
@@ -91,6 +98,11 @@ def entrenar(episodios=P.B_TRAIN, lote=8, lr=3e-4, clip=0.2, gamma=0.99, lam=0.9
             if vistos >= prox_eval or vistos >= episodios:
                 pc(ex, actor, vistos, float(np.mean([t["rewards"].sum() for t in trajs])))
                 prox_eval += eval_cada
+                guardar_estado(out, {"actor": actor.state_dict(), "critico": critico.state_dict(),
+                                     "opt": opt.state_dict(), "pc": pc.estado(),
+                                     "vistos": vistos, "prox_eval": prox_eval,
+                                     "torch_rng": torch.get_rng_state(), "np_rng": np.random.get_state(),
+                                     "rng": rng.bit_generator.state})
     pc.guardar({"entrenamiento": vistos, "validacion": len(pc.curva) * n_eval})
     return pc.curva
 
