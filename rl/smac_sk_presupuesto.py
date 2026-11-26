@@ -6,7 +6,7 @@ reglas que los demás métodos:
     matrona = 75, cirugía 20. Se optimizan 2 enteros: cupos de 1ra (8–14, así control ≥ 3·1ra)
     y de ecografía (41–59), con los mismos límites del catálogo pero en pasos de 1 (133 configuraciones).
   - Misma métrica: L (pacientes promedio en el sistema).
-  - Mismas semillas: solo validación (10000–10099), con números aleatorios comunes.
+  - Mismas semillas: solo validación (10000–10099) (no son llegadas comunes: el DES usa un solo generador).
   - Mismo presupuesto de simulación B (presupuesto.py):
         búsqueda   N_TRIALS configuraciones × N_REPS semillas de validación (las mismas para todas)
         confirmación las TOP_K mejores × las 100 − N_REPS semillas restantes

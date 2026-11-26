@@ -3,7 +3,7 @@ REINFORCE con línea base conectado al simulador DES.
 
 `entorno.rollout(policy_fn, seed)` corre UN año del simulador. Cada viernes 00:00
 el simulador se detiene, arma el estado (17 variables) y llama a `policy_fn(obs)`.
-La política devuelve un índice del catálogo de 42 repartos de cupos y el DES sigue
+La política devuelve un índice del catálogo de 28 repartos de cupos y el DES sigue
 hasta el viernes siguiente. Al final, `rollout` devuelve las 52 tuplas
 (estado, acción, recompensa) y los KPIs del año.
 

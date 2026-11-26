@@ -1,7 +1,7 @@
 """
 PPO (actor-crítico con recorte) sobre el mismo entorno, red y presupuesto que REINFORCE.
 
-  - Actor: MLP 2×64 → logits de las 42 acciones. Crítico: MLP 2×64 → V(s).
+  - Actor: MLP 2×64 → logits de las 28 acciones. Crítico: MLP 2×64 → V(s).
   - Ventaja con GAE(γ, λ). Horizonte finito: la semana 52 es terminal (V = 0 después),
     porque la métrica se mide en el año; el estado incluye la semana (seno/coseno),
     así que V puede distinguir cuánto falta para el cierre.

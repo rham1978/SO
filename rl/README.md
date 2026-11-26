@@ -11,22 +11,27 @@ configuración fija y a una política aleatoria, con el mismo presupuesto de cup
 
 | Archivo | Qué hace |
 |---|---|
-| `sim_fast.py` | Parche que acelera ~14× el simulador sin cambiar su lógica (elimina el sondeo cada 10 min en `_book_from_pool`). |
+| `sim_fast.py` | Parche que acelera el simulador ≈ 80× (148 → 1,8 s por año simulado, 100 semillas) sin cambiar su lógica (elimina el sondeo cada 10 min en `_book_from_pool`). |
 | `verificar_sim_fast.py`, `validar_estadistico.py` | Comparan simulador original y parcheado (KPIs por semilla). |
 | `catalogo.py` | Catálogo de 28 acciones (4 × 7, con control ≥ 3 × 1ra): cómo repartir los 56 cupos semanales del especialista entre 1ra consulta y control, y los 75 cupos de exámenes entre ecografía y laboratorio de matrona. La cirugía queda fija (caja negra del CRS, ~2,5 meses de demora). |
 | `entorno.py` | Entorno semanal: estado, acción, recompensa, particiones por semilla y `rollout(policy, seed)`. |
 | `evaluar.py` | Evaluación paralela de una política en un conjunto de semillas. |
+| `sensibilidad.py` | Re-evalúa las políticas con el backlog inicial ×0,5 y ×1,5. |
+| `indicadores.py` | Validez de respuesta del indicador L (demanda, capacidad, cirugía +15–25 %). |
+| `figuras_informe.py` | Genera las cuatro figuras del informe. |
+| `validar_equivalencia.py` | Equivalencia original vs acelerado (TOST ±2 %, IC90). |
+| `corrida_completa.py` | Corrida completa de punta a punta (≈ 9 h con 4 núcleos; se reanuda si se corta). |
 | `politicas_referencia.py` | Política aleatoria, búsqueda exhaustiva de la mejor configuración fija (con el presupuesto común) y regla SMAC-SK de la tesis (`modulo7_smac_sk.py`) como referencia de contexto. |
 | `presupuesto.py` | Presupuesto de simulación igual para todos: B = 3 000 años simulados por método e inicialización. |
 | `comun.py` | Red, normalización, muestreo de episodios y punto de control compartidos por los tres agentes. |
 | `reinforce.py`, `ppo.py`, `ddqn.py` | Los tres agentes (gradiente de política, actor-crítico, valor). |
-| `evaluar_final.py` | Evaluación final con mismas semillas: diferencia pareada por semilla vs la mejor fija (IC95, Wilcoxon) e interpretación de la política (árbol de decisión de profundidad 3). |
+| `evaluar_final.py` | Evaluación final con las mismas semillas de prueba: diferencia pareada por semilla vs la mejor fija (IC95, Wilcoxon) e interpretación de la política (árbol de decisión de profundidad 3). |
 | `corrida_humo.sh` | Corrida pequeña de punta a punta (~1/30 del presupuesto) en semillas de humo, sin tocar prueba. |
 
 ## Diseño
 
 - **Episodio:** 52 semanas. Decisión el viernes 00:00 previo a cada semana (antes de publicar agenda y generar cupos).
-- **Condición inicial:** backlog calibrado de la tesis en t = 0: 388 esperando 1ra consulta (248 alta, 138 media, 2 baja) y 1 070 en etapas post (700 control, 200 prequirúrgico, 170 lista quirúrgica); antigüedades y llegadas fijadas por la semilla.
+- **Condición inicial:** backlog calibrado de la tesis en t = 0: 388 esperando 1ra consulta (248 alta, 138 media, 2 baja) y 1 070 en etapas post (700 control, 200 prequirúrgico, 170 lista quirúrgica); las antigüedades iniciales dependen de la semilla. El DES usa un único generador aleatorio para llegadas y servicios, así que con la misma semilla dos políticas distintas NO ven las mismas llegadas: las pruebas pareadas por semilla son válidas, pero no reducen varianza.
 - **Fin del horizonte:** la semana 52 es terminal (sin valor de arranque). Se reporta `en_sistema_final` para detectar políticas que posterguen trabajo.
 - **Estado (17):** pacientes esperando 1ra consulta por prioridad, pacientes por etapa post (agendado 1ra, control, prequirúrgico, quirúrgico, otros), antigüedad media de la espera, pacientes esperando cupo de examen, controles bloqueados la semana anterior, semana del año (seno/coseno), cupos de la semana anterior (4 palancas).
 - **Recompensa:** −(pacientes en el sistema × días) / 1000 en la semana, muestreado al cierre de cada día.
@@ -44,3 +49,16 @@ python validar_estadistico.py 12        # simulador original vs rápido (~5 min,
 ./corrida_humo.sh                       # corrida pequeña de punta a punta (~35 min, 4 núcleos)
 python politicas_referencia.py          # referencias en validación (presupuesto completo)
 ```
+
+## Qué script regenera cada figura y tabla del informe
+
+Todo se lee desde `resultados/completa/` (pesos `*/mejor.pt`, `referencias.json`, `smac_sk.json`), así que no hace falta reentrenar.
+
+| Resultado del informe | Script | Tiempo aprox. (4 núcleos) | Salida |
+|---|---|---|---|
+| Tabla 1 (resultados en prueba) | `python evaluar_final.py --semillas prueba --refs resultados/completa/referencias.json --agentes "resultados/completa/*_s*/mejor.pt" --out resultados/completa/prueba` | 10 min | `prueba/final.json`, `prueba/por_semilla.csv` |
+| Fig. 4 y texto de sensibilidad | `python sensibilidad.py --dir resultados/completa` | 15 min | `sensibilidad/sensibilidad.json` |
+| Validez de respuesta del indicador L | `python indicadores.py 30` | 15 min | `resultados/indicadores.json` |
+| Tabla A1 (equivalencia del simulador) | `python validar_equivalencia.py 100` | 1 h 15 (8 semillas: 3 min) | `validacion_equivalencia.json` |
+| Fig. 1 (pareada), Fig. 2 (curvas), Fig. 3 (mapa de acciones) y Fig. 4 | `python figuras_informe.py --dir resultados/completa --out figuras` | 1 min | `figuras/*.png` |
+| Todo desde cero (entrenamiento incluido) | `python corrida_completa.py --out resultados/completa_pc` | ≈ 9 h | toda la carpeta |

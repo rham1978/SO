@@ -1,5 +1,5 @@
 """
-Evaluación final: todas las políticas con las MISMAS semillas (mismas llegadas, CRN),
+Evaluación final: todas las políticas con las MISMAS semillas (no son llegadas comunes: el DES usa un solo generador),
 una sola vez por política final.
 
 Reporta para cada política:
