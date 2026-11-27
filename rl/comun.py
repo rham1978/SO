@@ -15,7 +15,7 @@ import torch.nn as nn
 from concurrent.futures import ProcessPoolExecutor
 
 from catalogo import N_ACCIONES
-from entorno import OBS_DIM, SEMILLAS_TRAIN, SEMILLAS_VAL, rollout
+from entorno import OBS_DIM, SEMILLAS_TRAIN, SEMILLAS_TRAIN_EXTRA, SEMILLAS_VAL, rollout
 
 torch.set_num_threads(1)
 
@@ -67,10 +67,38 @@ def _rollout_aleatorio(seed):
     return rollout(lambda o: int(rng.integers(N_ACCIONES)), seed)
 
 
-def semillas_entrenamiento(semilla_init: int) -> np.ndarray:
-    """Cada inicialización recorre un orden distinto del rango de entrenamiento."""
+def semillas_entrenamiento(semilla_init: int, n: int = 0) -> np.ndarray:
+    """Cada inicialización recorre un orden distinto del rango de entrenamiento.
+
+    Si se piden más de 9 800 episodios (corrida larga), se agrega a continuación una
+    permutación del bloque SEMILLAS_TRAIN_EXTRA. Los primeros 9 800 quedan iguales a los
+    de la corrida original, así que la corrida corta es un prefijo de la larga.
+    """
     rng = np.random.default_rng(semilla_init)
-    return rng.permutation(np.arange(SEMILLAS_TRAIN.start, SEMILLAS_TRAIN.stop - N_NORM))
+    base = rng.permutation(np.arange(SEMILLAS_TRAIN.start, SEMILLAS_TRAIN.stop - N_NORM))
+    if n <= len(base):
+        return base
+    extra = np.random.default_rng(semilla_init + 1_000).permutation(
+        np.arange(SEMILLAS_TRAIN_EXTRA.start, SEMILLAS_TRAIN_EXTRA.stop))
+    if n > len(base) + len(extra):
+        raise ValueError(f"{n} episodios superan las {len(base) + len(extra)} semillas de entrenamiento")
+    return np.concatenate([base, extra])
+
+
+# ── Reanudación: las corridas largas (días) guardan su estado en cada punto de control ──
+def guardar_estado(out, estado):
+    path = os.path.join(out, "estado.pt")
+    torch.save(estado, path + ".tmp")
+    os.replace(path + ".tmp", path)
+
+
+def cargar_estado(out):
+    """Estado guardado por guardar_estado, o None si la corrida parte de cero."""
+    path = os.path.join(out, "estado.pt")
+    if not os.path.exists(path):
+        return None
+    print(f"reanudando desde {path}", flush=True)
+    return torch.load(path, weights_only=False)   # archivo propio de la corrida
 
 
 def mlp(salida, obs_dim=OBS_DIM, h=64):
@@ -115,6 +143,14 @@ class PuntoControl:
         self.out, self.tipo, self.norm, self.n_eval, self.config = out, tipo, norm, n_eval, config
         self.curva, self.mejor, self.t0 = [], np.inf, time.time()
 
+    def estado(self):
+        return {"curva": self.curva, "mejor": self.mejor}
+
+    def restaurar(self, e):
+        self.curva, self.mejor = e["curva"], e["mejor"]
+        if self.curva:
+            self.t0 = time.time() - self.curva[-1]["seg"]
+
     def __call__(self, ex, red, vistos, retorno_train):
         sd = {k: v.detach().clone() for k, v in red.state_dict().items()}
         ev = list(ex.map(rollout_red, [(self.tipo, sd, self.norm, s, "greedy", 0.0)
@@ -129,6 +165,14 @@ class PuntoControl:
         print(f"[{vistos:5d}] L val {L:.1f}  TTS val {self.curva[-1]['tts_val']:.1f}  "
               f"retorno train {retorno_train:.1f}  acciones distintas {self.curva[-1]['acciones_distintas']}",
               flush=True)
+        # Cada punto de control queda guardado (≈ 30 KB) para re-evaluar los mejores en las
+        # 100 semillas de validación al final (seleccion_val.py), sin volver a entrenar.
+        os.makedirs(os.path.join(self.out, "puntos"), exist_ok=True)
+        pc_path = os.path.join(self.out, "puntos", f"pc_{int(vistos):06d}.pt")
+        torch.save({"tipo": self.tipo, "red": sd, "norm_media": torch.as_tensor(self.norm.media),
+                    "norm_desv": torch.as_tensor(self.norm.desv), "episodios": int(vistos), "L_val": float(L)},
+                   pc_path + ".tmp")
+        os.replace(pc_path + ".tmp", pc_path)
         if L < self.mejor:
             self.mejor = L
             # Solo tensores, textos y números: se puede cargar con weights_only=True

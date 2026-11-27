@@ -27,7 +27,7 @@ import torch.nn as nn
 
 from catalogo import N_ACCIONES
 import presupuesto as P
-from comun import ESCALA_R, N_NORM, normalizador_compartido, PuntoControl, mlp, rollout_red, semillas_entrenamiento
+from comun import ESCALA_R, N_NORM, normalizador_compartido, PuntoControl, mlp, rollout_red, semillas_entrenamiento, guardar_estado, cargar_estado
 
 
 def retornos(r, gamma):
@@ -50,9 +50,14 @@ def entrenar(episodios=P.B_TRAIN, lote=8, lr=1e-3, gamma=0.99, beta_ent=0.01, se
         norm = normalizador_compartido(n_norm, ex)
         pol = mlp(N_ACCIONES)
         opt = torch.optim.Adam(pol.parameters(), lr=lr)
-        sem_train = semillas_entrenamiento(semilla)
+        sem_train = semillas_entrenamiento(semilla, episodios)
         pc = PuntoControl(out, "pi", norm, n_eval, config)
         vistos, prox_eval = 0, eval_cada
+        est = cargar_estado(out)
+        if est:
+            pol.load_state_dict(est["pol"]); opt.load_state_dict(est["opt"]); pc.restaurar(est["pc"])
+            vistos, prox_eval = est["vistos"], est["prox_eval"]
+            torch.set_rng_state(est["torch_rng"]); np.random.set_state(est["np_rng"])
         while vistos < episodios:
             sd = {k: v.clone() for k, v in pol.state_dict().items()}
             seeds = sem_train[vistos:vistos + min(lote, episodios - vistos)]
@@ -75,6 +80,9 @@ def entrenar(episodios=P.B_TRAIN, lote=8, lr=1e-3, gamma=0.99, beta_ent=0.01, se
             if vistos >= prox_eval or vistos >= episodios:
                 pc(ex, pol, vistos, float(np.mean([t["rewards"].sum() for t in trajs])))
                 prox_eval += eval_cada
+                guardar_estado(out, {"pol": pol.state_dict(), "opt": opt.state_dict(), "pc": pc.estado(),
+                                     "vistos": vistos, "prox_eval": prox_eval,
+                                     "torch_rng": torch.get_rng_state(), "np_rng": np.random.get_state()})
     pc.guardar({"entrenamiento": vistos, "validacion": len(pc.curva) * n_eval})
     return pc.curva
 

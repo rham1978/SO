@@ -24,7 +24,7 @@ import torch.nn.functional as F
 
 from catalogo import N_ACCIONES
 import presupuesto as P
-from comun import ESCALA_R, N_NORM, normalizador_compartido, PuntoControl, mlp, rollout_red, semillas_entrenamiento
+from comun import ESCALA_R, N_NORM, normalizador_compartido, PuntoControl, mlp, rollout_red, semillas_entrenamiento, guardar_estado, cargar_estado
 
 
 class Buffer:
@@ -58,9 +58,15 @@ def entrenar(episodios=P.B_TRAIN, lote=8, lr=1e-3, gamma=0.99, obj_cada=500, buf
         q_obj.load_state_dict(q.state_dict())
         opt = torch.optim.Adam(q.parameters(), lr=lr)
         buf = None
-        sem_train = semillas_entrenamiento(semilla)
+        sem_train = semillas_entrenamiento(semilla, episodios)
         pc = PuntoControl(out, "q", norm, n_eval, config)
         vistos, prox_eval, pasos = 0, eval_cada, 0
+        est = cargar_estado(out)
+        if est:
+            q.load_state_dict(est["q"]); q_obj.load_state_dict(est["q_obj"])
+            opt.load_state_dict(est["opt"]); pc.restaurar(est["pc"]); buf = est["buf"]
+            vistos, prox_eval, pasos = est["vistos"], est["prox_eval"], est["pasos"]
+            torch.set_rng_state(est["torch_rng"]); rng.bit_generator.state = est["rng"]
         while vistos < episodios:
             eps = max(eps_fin, 1.0 - (1.0 - eps_fin) * vistos / max(1, frac_eps * episodios))
             sd = {k: v.clone() for k, v in q.state_dict().items()}
@@ -95,6 +101,10 @@ def entrenar(episodios=P.B_TRAIN, lote=8, lr=1e-3, gamma=0.99, obj_cada=500, buf
             if vistos >= prox_eval or vistos >= episodios:
                 pc(ex, q, vistos, float(np.mean([t["rewards"].sum() for t in trajs])))
                 prox_eval += eval_cada
+                guardar_estado(out, {"q": q.state_dict(), "q_obj": q_obj.state_dict(), "opt": opt.state_dict(),
+                                     "pc": pc.estado(), "buf": buf, "vistos": vistos, "prox_eval": prox_eval,
+                                     "pasos": pasos, "torch_rng": torch.get_rng_state(),
+                                     "rng": rng.bit_generator.state})
     pc.guardar({"entrenamiento": vistos, "validacion": len(pc.curva) * n_eval})
     return pc.curva
 

@@ -41,6 +41,9 @@ N_WEEKS = 52
 
 # Particiones por semilla del simulador (fijadas antes de entrenar)
 SEMILLAS_TRAIN = range(0, 10_000)
+# Bloque extra de entrenamiento para corridas largas (> 9 800 episodios por inicialización,
+# p. ej. 2 000 000 de pasos semanales): no se cruza con validación, prueba ni humo.
+SEMILLAS_TRAIN_EXTRA = range(100_000, 200_000)
 SEMILLAS_VAL = range(10_000, 10_100)
 SEMILLAS_TEST = range(500_000, 500_030)  # mismo bloque de re-evaluación de incumbentes de benchmark_riguroso.py (SMAC)
 # Semillas de humo: solo para probar el pipeline de punta a punta (corrida pequeña).

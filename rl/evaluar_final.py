@@ -94,9 +94,12 @@ if __name__ == "__main__":
     p.add_argument("--agentes", default="resultados/*_s*/mejor.pt")
     p.add_argument("--n_interp", type=int, default=5)
     p.add_argument("--smac", default=None, help="smac_sk.json (por defecto, junto a --refs)")
+    p.add_argument("--n_prueba", type=int, default=len(SEMILLAS_TEST),
+                   help="semillas de prueba desde 500 000 (30 en la corrida completa, 100 en la larga)")
     p.add_argument("--out", required=True)
     a = p.parse_args()
-    semillas = list(SEMILLAS_TEST) if a.semillas == "prueba" else list(SEMILLAS_HUMO[50:60])
+    semillas = (list(range(SEMILLAS_TEST.start, SEMILLAS_TEST.start + a.n_prueba)) if a.semillas == "prueba"
+                else list(SEMILLAS_HUMO[50:60]))
     os.makedirs(a.out, exist_ok=True)
     refs = json.load(open(a.refs))
     a_fija = int(refs["mejor_fija"])
