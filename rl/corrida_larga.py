@@ -49,12 +49,13 @@ if __name__ == "__main__":
     p.add_argument("--agentes", default=",".join(AGENTES))
     p.add_argument("--top_k", type=int, default=5)
     p.add_argument("--n_prueba", type=int, default=100)
+    p.add_argument("--log", default="corrida.log", help="nombre de la bitácora dentro de --out")
     p.add_argument("--solo_evaluar", action="store_true")
     a = p.parse_args()
 
     out = a.out
     os.makedirs(out, exist_ok=True)
-    log = os.path.join(out, "corrida.log")
+    log = os.path.join(out, a.log)
     py = sys.executable
     episodios = math.ceil(a.pasos / 52)
     eval_cada = episodios // a.n_check
